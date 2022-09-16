@@ -1,0 +1,4 @@
+jax[cuda]==0.3.17
+
+
+--find-links https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
