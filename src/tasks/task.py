@@ -1,33 +1,41 @@
-from ast import Call
-from dataclasses import dataclass
-from typing import Callable, Dict, List, NewType, Set
+from dataclasses import dataclass, field
+from typing import Callable, ClassVar, Dict, NewType, Set
 from enum import Enum
+
+from jax.random import PRNGKey
+from jaxlib.xla_extension import DeviceArray
 
 TaskId = NewType('TaskId', int) # task 
 
-class TaskType(Enum):
-    PROCESS_DATA = 0
-    TRAIN_NN = 1
-    TRAIN_NTK = 2
-    COMPUTE_STATISTICS = 3
 
 class Status(Enum):
     WAITING = 0
     SUBMITTED = 1
     DONE = 2
 
+
 @dataclass
 class Task:
-    dependencies: Set = None
-    hyperparams: Dict = None # alpha, k, N, P
-    repeat: int = 1
-    type: TaskType = None
-    status: Status = Status.WAITING
-    single_gpu: bool = True
-    _id: TaskId = None
+    hyperparams: Dict
+    type_: int
+    seed: PRNGKey
 
-    apply_callback: Callable = None
-    save_callback: Callable = None
+    load_callback: Callable[[DeviceArray], dict] # RNG -> aux data
+    apply_callback: Callable[[DeviceArray, dict, dict], dict] # (RNG, data, aux data) -> result
+    save_callback: Callable[[str, dict], None] # path, result -> None
+
+    repeat: int = 1 
+    parallelize: bool = False
+    dependencies: Set = field(default_factory=set)
+    
+    _status: Status = field(default=Status.WAITING, init=False)
+    
+    _id: TaskId = field(init=False) 
+    _count: ClassVar[int] = 0
+
+    def __post_init__(self):
+        self._id = TaskId(Task._count)
+        Task._count += 1
 
 
     

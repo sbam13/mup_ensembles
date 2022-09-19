@@ -1,0 +1,4 @@
+  dataset: cifar10
+  model: resnet
+  repeat: 12
+  seed: 420

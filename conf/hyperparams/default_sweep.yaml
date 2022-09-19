@@ -1,0 +1,14 @@
+alpha: # scale
+  - 0.1
+  - 0.01
+  - 0.001
+P: # dataset size
+  - 100
+  - 1000
+  - 10000
+N: # width
+  - 100
+  - 1000
+  - 10000
+target_fn:
+  - 0 # full dataset
