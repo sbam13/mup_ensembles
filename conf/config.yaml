@@ -1,0 +1,3 @@
+defaults:
+  setting: cifar10_resnet
+  hyperparams: default_sweep
