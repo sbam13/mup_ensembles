@@ -1,14 +1,29 @@
-alpha: # scale
-  - 0.1
-  - 0.01
-  - 0.001
-P: # dataset size
-  - 100
-  - 1000
-  - 10000
-N: # width
-  - 100
-  - 1000
-  - 10000
-target_fn:
-  - 0 # full dataset
+model_params:
+  N: # width
+    - 100
+    - 1000
+    - 10000
+  alpha: # scale
+    - 0.1
+    - 0.01
+    - 0.001
+data_params:
+  P: # dataset size
+    - 128
+    - 256
+    - 512
+    - 1024
+    - 2048
+    - 4096
+    - 8192
+    - 16384
+    - 32768
+  k:
+    - 0 # full dataset
+training_params:
+  batch_size: 
+    - 128
+  eta:
+    - 1e-2
+  momentum:
+    - 0.95

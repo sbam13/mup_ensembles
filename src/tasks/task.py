@@ -20,8 +20,8 @@ class Task:
     type_: int
     seed: PRNGKey
 
-    load_callback: Callable[[DeviceArray], dict] # RNG -> aux data
-    apply_callback: Callable[[DeviceArray, dict, dict], dict] # (RNG, data, aux data) -> result
+    load_callback: Callable[[], dict] # any -> aux data
+    apply_callback: Callable[[DeviceArray, dict, float, int], dict] # (RNG, data, alpha, N) -> result
     save_callback: Callable[[str, dict], None] # path, result -> None
 
     repeat: int = 1 

@@ -50,13 +50,17 @@ class TaskRunner:
         save_folder = join(self.preprocess_device.save_dir, f'task-{task._id}')
         self._directory_callback(save_folder)
 
-        pload = pmap(load, axis='param_init') # load (key) -> aux
-        papply = pmap(apply, axis='param_init') # apply (key, data, aux) -> result
+        pload = pmap(load, static_broadcasted_argnums=1) # load () -> aux
+        papply = pmap(apply, static_broadcasted_argnums=(2, 3)) # apply (key, data) -> result
 
+        P = task.hyperparams['P']
+        assert isinstance(P, int)
         data = self.preprocess_device.data
+        data = pload(data, P) # TODO: abstract away P (only subset case implemented here)
+        
+        alpha, N = task.hyperparams['alpha'], task.hyperparams['N']
         for batch in range(0, iters):
-            aux = pload(load_keys[batch]) 
-            result = papply(apply_keys[batch], data, aux)
+            result = papply(apply_keys[batch], data, alpha, N)
             local_result = device_get(result)
             
             idx = batch * num_devices

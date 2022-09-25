@@ -18,7 +18,7 @@ class PreprocessDevice(ABC):
             self.data = device_put(_data, devices()[0])
 
     @abstractmethod
-    def load_data(self):
+    def load_data(self, data_params: dict):
         """Return a Pytree with two leaves: the first containing a set of input data and the second 
         containing a set of covariates."""
         pass
