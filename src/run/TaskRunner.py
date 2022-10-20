@@ -37,13 +37,14 @@ class TaskRunner:
         save_folder = join(self.preprocess_device.save_dir, f'task-{task._id}')
 
         # TODO: this is hacky. separate into grid-search hyperparams
+        # recall `apply` is (RNG, data, model_params, training_params) -> result
         papply = pmap(apply, static_broadcasted_argnums=(2, 3)) # apply (key, data) -> result
 
         data = self.preprocess_device.data
         
-        alpha, N = task.hyperparams['alpha'], task.hyperparams['N']
+        mp, tp = dict(task.model_params), dict(task.training_params)
         for batch in range(0, iters):
-            result = papply(apply_keys[batch], data, alpha, N)
+            result = papply(apply_keys[batch], data, mp, tp)
             local_result = device_get(result)
             
             idx = batch * num_devices

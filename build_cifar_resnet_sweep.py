@@ -7,7 +7,7 @@ import jax.random as jr
 
 from config_structs import Config, DataParams, ModelParams, Setting, TaskConfig, TaskListConfig
 
-CONFIG_DIR = 'conf/experiment' # TODO: add this config dir
+CONFIG_DIR = 'conf/experiment'
 SAVE_DIR = '/tmp/results'
 
 def gen_sweeps(alpha_vals, N_vals, P_vals, ensemble_size: int, 

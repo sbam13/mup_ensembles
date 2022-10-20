@@ -5,7 +5,7 @@ from omegaconf import MISSING
 @dataclass
 class TrainingParams:
     eta: float = 0.1
-    momentum: float = 0.95
+    momentum: float = 0.9
     weight_decay: float = 5e-4 * 64 # TODO: replace with batch_size
     batch_size: int = 64
     full_batch_gradient: bool = False
