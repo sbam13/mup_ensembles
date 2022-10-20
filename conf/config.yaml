@@ -1,3 +1,2 @@
 defaults:
-  setting: cifar10_resnet
-  hyperparams: default_sweep
+  - experiment: sweep_dataset_size_290_data_bag_0

@@ -1,0 +1,60 @@
+setting:
+  dataset: cifar10
+  model: resnet18
+hyperparams:
+  task_list:
+  - training_params:
+      eta: 0.1
+      momentum: 0.95
+      weight_decay: 0.032
+      batch_size: 64
+      full_batch_gradient: false
+    model_params:
+      'N': 3
+      alpha: 0.1
+    repeat: 8
+    parallelize: true
+    seed: 204471
+  - training_params:
+      eta: 0.1
+      momentum: 0.95
+      weight_decay: 0.032
+      batch_size: 64
+      full_batch_gradient: false
+    model_params:
+      'N': 234
+      alpha: 0.1
+    repeat: 8
+    parallelize: true
+    seed: 393546
+  - training_params:
+      eta: 0.1
+      momentum: 0.95
+      weight_decay: 0.032
+      batch_size: 64
+      full_batch_gradient: false
+    model_params:
+      'N': 3
+      alpha: 0.2
+    repeat: 8
+    parallelize: true
+    seed: 25907
+  - training_params:
+      eta: 0.1
+      momentum: 0.95
+      weight_decay: 0.032
+      batch_size: 64
+      full_batch_gradient: false
+    model_params:
+      'N': 234
+      alpha: 0.2
+    repeat: 8
+    parallelize: true
+    seed: 905441
+  data_params:
+    P: 290
+    k: 0
+    on_device: true
+    data_seed: 269155
+    root_dir: /tmp/cifar10
+save_folder: /tmp/results/results_dataset_size_290_data_seed_0

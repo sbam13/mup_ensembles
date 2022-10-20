@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, ClassVar, Dict, NewType, Set
+from typing import Callable, ClassVar, Dict, Mapping, NewType, Set
 from enum import Enum
 
 from jax.random import PRNGKey
@@ -16,12 +16,14 @@ class Status(Enum):
 
 @dataclass
 class Task:
-    hyperparams: Dict
+    # data_params: Mapping
+    model_params: Mapping
+    training_params: Mapping
+
     type_: int
     seed: PRNGKey
 
-    load_callback: Callable[[], dict] # any -> aux data
-    apply_callback: Callable[[DeviceArray, dict, float, int], dict] # (RNG, data, alpha, N) -> result
+    apply_callback: Callable[[DeviceArray, dict, Mapping, Mapping], dict] # (RNG, data, model_params, training_params) -> result
     save_callback: Callable[[str, dict], None] # path, result -> None
 
     repeat: int = 1 

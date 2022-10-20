@@ -1,4 +1,0 @@
-  dataset: cifar10
-  model: resnet
-  repeat: 20
-  seed: ???

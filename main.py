@@ -1,50 +1,44 @@
 #!/usr/bin/env python3
-from multiprocessing.sharedctypes import Value
+import logging
+
 from omegaconf import DictConfig
+
 import hydra
 
-from itertools import product
-from os import getcwd
+from src.experiment.names import names
+from src.run.run_tasks import run_tasks
 
-from experiment.names import names
-from src.run.TaskRunner import TaskRunner
+# TODO: timing!
 
-from logging import info
-from time import time
+log = logging.getLogger(__name__)
 
-# TODO: sys.excepthook, add global finally that moves scratch 
-# TODO: change savedir to scratch
-
-@hydra.main(config_path='conf', config_name='config.yaml')
+@hydra.main(version_base=None, config_path='conf', config_name='config')
 def main(cfg: DictConfig):
-    setting = cfg['setting']
+    # cfg = (setting, hyperparams)
+    setting = cfg.setting
     try:
-        module_ = names[setting['dataset']][setting['model']]
+        ds_name, model_name = setting['dataset'], setting['model']
+        module_ = names[ds_name, model_name]
     except KeyError:
         raise ValueError('Invalid experimental setting.')
 
-    hyperparams = cfg['hyperparams']
-    hp_list = []
-    for vt in product(hyperparams.values()):
-        hp_list.append(dict(zip(hyperparams.keys(), vt)))
+    hp_list = cfg.hyperparams.task_list
     
-    reader = module_.TaskReader(setting, hp_list)
+    reader = module_.TaskReader(hp_list)
     
-    save_dir = getcwd()
-    PD = module_.PreprocessDevice(save_dir)
+    save_dir = cfg.save_folder
+    
+    log.info('Loading data...')
+    PD = module_.PreprocessDevice(save_dir, cfg.hyperparams.data_params)
+    log.info('...done.')
 
-    runner = TaskRunner(PD)
+    log.info('Running tasks...')
+    run_tasks(reader.tasks, PD)
+    log.info('...all tasks complete.')
 
-    for idx, task in enumerate(reader.tasks):
-        start = time.time()
-        if task.parallelize:
-            runner.run_repeat_task(task)
-        else:
-            runner.run_serial_task(task)
-        end = time.time()
-        elapsed = end - start
-        info(f'Task {idx} completed. Elapsed time (s): {elapsed}.')
-        
+
+if __name__ == '__main__':
+    main()
 
 
     
