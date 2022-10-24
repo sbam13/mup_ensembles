@@ -4,14 +4,13 @@ from typing import Mapping
 from src.tasks.task import Task
 from src.tasks.build_task_graph import order_tasks
 
-from jax import local_device_count
-from jax.random import PRNGKey
+from jax import device_count
 
 
 class TaskReader(ABC):
     def __init__(self, config_list: list[Mapping]):
         self.tasks = config_list
-        self._num_devices = local_device_count()
+        self._num_devices = device_count()
 
     @property
     def tasks(self) -> tuple[Task]:

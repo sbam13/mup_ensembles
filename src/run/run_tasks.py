@@ -15,10 +15,10 @@ def _run_task(task: Task, runner: TaskRunner):
         else:
             runner.run_serial_task(task)
     except BaseException as e:
-            error(f'Task {idx} raised an exception. Task and error specification: ', task, e) 
+            error(f'Task {task._id} raised an exception. Task and error specification: ', task.model_params, task.training_params, e) 
     end = time.time()
     elapsed = end - start
-    info(f'Task completed. Elapsed time (s): {elapsed}. Task specifications: ', task.hyperparams)
+    info(f'Task completed. Elapsed time (s): {elapsed}. Task specifications: ', task.model_params, task.training_params)
 
 def run_tasks(tasks: list[Task], specs: PreprocessDevice):
     runner = TaskRunner(specs)

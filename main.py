@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import logging
+import time
 
 from omegaconf import DictConfig
 
 import hydra
+from save_helpers import copy_results_into_permanent
 
 from src.experiment.names import names
 from src.run.run_tasks import run_tasks
@@ -35,6 +37,12 @@ def main(cfg: DictConfig):
     log.info('Running tasks...')
     run_tasks(reader.tasks, PD)
     log.info('...all tasks complete.')
+
+    log.info('Moving results into permanent...')
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    permanent_results_dirname = 'results-' + timestr
+    copy_results_into_permanent('/tmp/results', permanent_results_dirname)
+    log.info('...done.')
 
 
 if __name__ == '__main__':

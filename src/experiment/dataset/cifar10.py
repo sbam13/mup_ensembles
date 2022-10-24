@@ -5,12 +5,12 @@ from multiprocessing.sharedctypes import Value
 from typing import Mapping
 
 from torchvision.datasets import CIFAR10
-from torchvision.transforms import ToTensor, Compose
 
 import jax.numpy as jnp
 import jax.random as jr
 
 from jax.numpy import float32, array
+
 
 def load_cifar_data(data_params: Mapping) -> dict[str, tuple]:
     data_dir = data_params['root_dir']
@@ -28,6 +28,7 @@ def load_cifar_data(data_params: Mapping) -> dict[str, tuple]:
     y_test = array(test_data.targets, dtype=float32)
 
     return {'train': (X0, y), 'test': (X_test0, y_test)}
+
 
 
 def take_subset(data: tuple, random_subset: bool, data_seed, P: int):

@@ -12,6 +12,8 @@ from src.run.PreprocessDevice import PreprocessDevice as PD
 from src.tasks.read_tasks import TaskReader as TR
 from src.tasks.task import Task
 
+from flax.core.frozen_dict import freeze
+
 
 class TaskType(Enum):
     TRAIN_NN = 0
@@ -21,13 +23,13 @@ class TaskType(Enum):
 
 class Callbacks(Enum):
     APPLY = apply
-    SAVE = None
+    # SAVE = None
 
 
 # TODO: add to validate_task the check that batch_size divides train and test size
 
 class PreprocessDevice(PD):
-    def _normalize_data(self, data):
+    def _normalize_data(self, data: dict):
         X0, y = data['train']
         X_test0, y_test = data['test']
 
@@ -53,28 +55,27 @@ class PreprocessDevice(PD):
         data = load_cifar_data(data_params)
         normalized_data = self._normalize_data(data)
         
-        return normalized_data
+        return freeze(normalized_data)
 
 
 class TaskReader(TR):
     task_type = TaskType.TRAIN_NN
-
-    def __init__(self):
-        super().__init__()
 
     def validate_task(self, task: Task):
         super().validate_task(task)
 
     def _read_task(self, config: Mapping):
         try:
-            task = Task(model_params=config['model_params'],
+            task = Task(model='resnet18',
+                        dataset='cifar10',
+                        model_params=config['model_params'],
                         training_params=config['training_params'],
                         type_=self.task_type,
                         seed=config['seed'],
                         repeat=config['repeat'],
                         parallelize=config['parallelize'],
-                        save_callback=Callbacks.save_callback,
-                        apply_callback=Callbacks.apply_callback)
+                        # save_callback=Callbacks.save_callback,
+                        apply_callback=Callbacks.APPLY)
         except KeyError:
             raise ValueError('Task not properly configured.')
         return task

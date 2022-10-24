@@ -1,59 +1,90 @@
-from typing import Callable, NamedTuple, Union
+from typing import Callable, Mapping
 
+import chex
 import jax.numpy as jnp
-
-from jax.lax import while_loop, scan
-from jax.random import PRNGKey, permutation, split
-from jax import vmap, value_and_grad
-
-from jaxlib.xla_extension import DeviceArray
-
 import optax
+
+from flax.core.frozen_dict import FrozenDict
+from jax import pmap, tree_map, value_and_grad, vmap
+from jax import device_put_replicated, device_put_sharded
+from jax.lax import scan
+
+from jax.random import permutation, split
+from jaxlib.xla_extension import Device
+from src.experiment.model import ResNet18
+from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
 # TODO: ensure batching is consistent !!!
 # split apply into train and predict
 
+@chex.dataclass
+class Result: 
+    weight_init_key: chex.PRNGKey
+    params_f: chex.ArrayTree
+    train_loss_f: chex.ArrayDevice
+    test_loss_f: chex.Scalar
+    test_deviations_f: chex.ArrayDevice
 
-def initialize(shape):
-    raise NotImplementedError
+def initialize(keys: chex.PRNGKey, model, devices: list[Device], data_params: Mapping) -> FrozenDict:
+    assert len(keys) == len(devices)
+
+    CIFAR_SHAPE = (32, 32, 3)
+    dummy_input = jnp.zeros((1,) + CIFAR_SHAPE) # added batch index
+    replicated_dummy = device_put_replicated(dummy_input, devices)
+
+    # get shape data from model
+    return pmap(model.init)(keys, replicated_dummy)
 
 
-def train(apply_fn: Callable, loss_fn: Callable, params0: optax.Params, 
-        optimizer: optax.GradientTransformation, Xtr, ytr, key: PRNGKey, 
-        epochs = 100, eta = 0.2, loss_cutoff = 1e-2, batch_size = 128) -> optax.Params:
+def train(loss_fn: Callable, params0: chex.ArrayTree, 
+        optimizer: optax.GradientTransformation, Xtr, ytr, keys: chex.PRNGKey, 
+        devices: list[Device], epochs: int = 80, batch_size: int = 128) -> tuple[int, 
+        chex.ArrayTree, chex.Scalar]:
+    num_batches = Xtr.shape[0] // batch_size
+
+    # ----------------------------------------------------------------------
+    # @chex.dataclass
+    # class StepState:
+    #     loss: chex.Scalar
+    #     params: chex.ArrayTree
+    #     opt_state: optax.OptState
+
+    # @chex.dataclass
+    # class EpochState:
+    #     key: PRNGKey
+    #     model_state: StepState
     
-    class StepState(NamedTuple):
-        loss: Union[DeviceArray, float]
-        params: optax.Params
-        opt_state: tuple
+    # distributed pytrees
+    @chex.dataclass
+    class DistributedStepState:
+        loss: chex.Array
+        params: chex.ArrayTree
+        opt_state: chex.ArrayTree
 
-    class EpochState(NamedTuple):
-        key: PRNGKey
-        epoch: int
-        model_state: StepState
+    @chex.dataclass
+    class DistributedEpochState:
+        key: chex.PRNGKey
+        model_state: DistributedStepState
+
+    loss_grad_fn = value_and_grad(loss_fn)
 
     def step(step_state: tuple, data: tuple):
         _, params, opt_state = step_state
         batch, labels = data
 
-        loss_value, grads = value_and_grad(loss_fn)(params, batch, labels)
+        loss_value, grads = loss_grad_fn(params, batch, labels)
         updates, opt_state = optimizer.update(grads, opt_state, params)
         params = optax.apply_updates(params, updates)
 
-        return StepState(loss_value, params, opt_state), None
+        return DistributedStepState(loss_value, params, opt_state), None
+    
+    @pmap(axis_name='trials')
+    def update(state: DistributedEpochState, 
+                Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice) -> DistributedEpochState:
+        key, other = split(state.key, 2)
 
-    def stopping_condition(state: EpochState) -> bool:
-        return state.epoch < epochs and state.model_state.loss >= loss_cutoff
-
-    num_batches = Xtr.shape[0] // batch_size
-    Xtr_batched = Xtr.reshape((num_batches, batch_size, Xtr.shape[1]))
-    ytr_batched = ytr.reshape((num_batches, batch_size, 1))
-
-    def update(state: EpochState) -> EpochState:
-        rkey1, rkey2 = split(state.key, 2)
-        
         # shuffle
-        Xtr_shuffled, ytr_shuffled = permutation(rkey1, Xtr), permutation(rkey1, ytr)
+        Xtr_shuffled, ytr_shuffled = permutation(key, Xtr), permutation(key, ytr)
         
         # batch training data
         Xtr_sb = Xtr_shuffled.reshape((num_batches, batch_size, *Xtr_shuffled.shape[1:]))
@@ -62,108 +93,88 @@ def train(apply_fn: Callable, loss_fn: Callable, params0: optax.Params,
         # SGD steps over batches in epoch
         model_state_e, _ = scan(step, state.model_state, (Xtr_sb, ytr_sb))
 
-        return EpochState(rkey2, state.epoch + 1, model_state_e)
+        return DistributedEpochState(other, model_state_e)
+    # ----------------------------------------------------------------------
+    losses0 = device_put_replicated(jnp.zeros(1), devices)
 
-    init_opt_state = optimizer.init(params0)
-    init_state = EpochState(0, jnp.inf, params0, init_opt_state)
+    init_opt_state = pmap(optimizer.init)(params0)
+    init_step_state = DistributedStepState(loss=losses0, params=params0, opt_state=init_opt_state)
+    init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
-    end_state = while_loop(stopping_condition, update, init_state)
-    return end_state.params
+    # training loop
+    state = init_epoch_state
+    for _ in range(epochs):
+        state = update(state, Xtr, ytr)
+    
+    return state.model_state.params, state.model_state.loss
     
 
-def predict(apply_fn, mse, X_test, y_test, batch_size = 128):
-    num_batches = X_test.shape[0] // batch_size
+def loss_and_deviation(apply_fn, loss, X_test, y_test):
+    """Returns test loss and the deviation (y_hat - y_true)."""
+    vapply_fn = vmap(apply_fn)
+    vloss = vmap(loss)
 
-    batched_X_test = X_test.reshape((num_batches, batch_size, X_test.shape[2]))
-    batched_y_test = y_test.reshape((num_batches, batch_size, 1))
-
-    batch_apply_fn = vmap(apply_fn)
-    batch_mse = vmap(mse)
-
-    batched_yhat = batch_apply_fn(batched_X_test) # shape: (nb, bs, 1)
-    batched_test_loss = batch_mse(batched_y_test, batched_yhat)
-    loss = batched_test_loss.mean()
+    @pmap
+    def compute_ld(X_test, y_test):
+        yhat = vapply_fn(X_test)
+        deviation = yhat - y_test
+        test_losses = vloss(y_test, yhat)
+        loss = test_losses.mean()
+        return loss, deviation
     
-    return loss, batched_yhat.reshape((X_test.shape[0], *batched_yhat[2:]))
+    return compute_ld(X_test, y_test)
 
 
-def apply(key, data, hyperparams):
-    training_hyperparams = hyperparams['training_params']
-    model_params = hyperparams['model_params']
+def apply(key, data, devices, model_params, training_params):
+    N = model_params['N']
+    hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
+    model = ResNet18(hidden_sizes=hidden_sizes, n_classes=1)
 
-    key, temp_key = split(key)
-    init_params = initialize(temp_key, model_params)
-    del temp_key
+    # get sharded keys
+    shard = lambda key_array: device_put_sharded(tuple(key_array), devices)
 
-    train()
-    shift_apply = lambda params, Xin: alpha * ( apply_fn(params, Xin) - apply_fn(params0,Xin) )
+    keys = split(key, num=len(devices) * 2)
+    del key
 
+    init_keys, apply_keys = shard(keys[:len(devices)]), shard(keys[len(devices),:])
 
-# def train_models(data, batch_size = 200, num_inits=3, alpha0 = 1.0, N=100, num_iter = 100, eta = 0.2):
-#     #print("alpha0 = %0.2f" % alpha)
-#     Xtr, ytr = data['train']
+    # get initial parameters
+    params_0 = initialize(init_keys, model, devices)
 
-#     # all_params0 = []
-#     # all_paramsf = []
-#     # ytr_2d = jnp.reshape(ytr, (ytr.shape[0],1))
-#     # #print(ytr_2d.shape)
-#     # all_trains = []
-#     # all_test = []
+    # compose apply function
+    apply_fn = model.apply
+    alpha = model_params['alpha']
+    shift_apply = lambda params, Xin: alpha * (apply_fn(params, Xin) - apply_fn(params_0, Xin))
 
-#     alpha = alpha0/jnp.sqrt(N)
-#     _, params0 = init_fn(random.PRNGKey(i), (-1,32,32,3)) # new init
-
-#     shift_apply = lambda params, Xin: alpha * ( apply_fn(params, Xin) - apply_fn(params0,Xin) )
-
-#     mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
-#     loss_fn = lambda params, Xin, yin: mse(shift_apply(params, Xin), yin)
-#     grad_fn = jit(grad(loss_fn, 0))
-
-#     lr_exp = 2
-#     optimizer = optax.sgd(N*eta/alpha0 ** lr_exp, momentum=0.95)
-#     opt_state = opt_init(params0)
-
-#     # for 
-
-#     num_batches = Xtr.shape[0]//batch_size
-
-#         print("init %d" % i)
-#         for t in range(num_iter):
-#             loss_t = 0.0
-#             for b in range(num_batches):
-#             	opt_state = opt_update(t, grad_fn(get_params(opt_state),Xtr[b*batch_size:(b+1)*batch_size],ytr_2d[b*batch_size:(b+1)*batch_size]), opt_state)
-#             	loss_t += 1/num_batches * loss_fn(get_params(opt_state), Xtr[b*batch_size:(b+1)*batch_size],ytr_2d[b*batch_size:(b+1)*batch_size])
-#             sys.stdout.write('\r loss: %0.6f' % loss_t)
-#             if loss_t < 1e-2:
-#                 break
-#         all_trains += [loss_t]
-#         all_params0 += [params0]
-#         all_paramsf += [get_params(opt_state)]
-
-#         partial_apply = partial(shift_apply, get_params(opt_state))
-
-#         X_test, y_test = data['test']
-
-#         loss, yhat = predict(partial_apply, mse, X_test, y_test, batch_size)
-
-#         # tb = 100
-#         # num_batch_te = X_te_bin.shape[0] // tb
-#         # test_loss = 0.0
-#         # for n in range(num_batch_te):
-#         #     yhat[i,tb*n:tb*(n+1)] = shift_apply(get_params(opt_state), X_te_bin[tb*n:tb*(n+1)])[:,0]
-#         #     test_loss += 1/num_batch_te * loss_fn(get_params(opt_state), X_te_bin[tb*n:(n+1)*tb],y_te_bin[tb*n:(n+1)*tb].reshape((tb,1)))
-#         # all_test += [test_loss]
-#     test_ens = jnp.mean( (jnp.mean(yhat, axis = 0)-y_te_bin )**2  )
-
-#     # TODO:
-#     # np.save(savedir+"ens_test_loss_N={}_P={}_L={}_alpha0={:.2f}_logeta={:.2f}_sigma2=2".format(N,P, block_size, alpha0,np.log10(eta)), test_ens)
-#     # np.save(savedir+"test_loss_N={}_P={}_L={}_alpha0={:.2f}_logeta={:.2f}_sigma2=2".format(N,P, block_size, alpha0,np.log10(eta)), all_test)
-#     # np.save(savedir+"train_loss_N={}_P={}_L={}_alpha0={:.2f}_logeta={:.2f}_sigma2=2".format(N,P, block_size, alpha0,np.log10(eta)), all_trains)
+    # compose optimizer
+    POWER = -0.5
+    eta_0 = training_params['eta_0']
+    momentum = training_params['momentum']
+    batch_size = training_params['batch_size']
+    block_steps = 512 // batch_size
+    lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
     
-    
-#     #np.save(modeldir+"params0_N={}_P={}_L={}_alpha0={:.2f}_logeta={}".format(N,P, block_size, alpha0,eta), all_params0)
-#     #np.save(modeldir+"paramsf_N={}_P={}_L={}_alpha0={:.2f}_logeta={}".format(N,P, block_size, alpha0,eta), all_paramsf)
-#     #np.save(savedir+"yhat_N={}_P={}_L={}_alpha0={:.2f}_logeta={}".format(N,P, block_size, alpha0,eta), yhat)
-#     return
+    optimizer = optax.sgd(lr_schedule, momentum)
 
-# np.save(savedir +"test_labels", y_te_bin)
+    # loss function
+    mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
+    loss_fn = lambda params, Xin, yin: mse(shift_apply(params, Xin), yin)
+
+    # train!
+    epochs = training_params['epochs']
+    params_f, train_loss_f = train(loss_fn, params_0, optimizer, 
+                                    *data['train'], apply_keys, devices, 
+                                    epochs)
+
+    test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, mse, *data['test'])
+
+    parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
+                train_loss_f=train_loss_f, test_loss_f=test_loss_f, 
+                test_deviations_f=test_deviations_f)
+    
+    results = [None] * len(devices)
+    for d in range(len(devices)):
+        results[d] = tree_map(lambda z: z[d], parallel_result)
+    return results
+    
+

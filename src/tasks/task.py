@@ -16,15 +16,17 @@ class Status(Enum):
 
 @dataclass
 class Task:
-    # data_params: Mapping
+    model: str
+    dataset: str
+    
     model_params: Mapping
     training_params: Mapping
 
     type_: int
     seed: PRNGKey
 
-    apply_callback: Callable[[DeviceArray, dict, Mapping, Mapping], dict] # (RNG, data, model_params, training_params) -> result
-    save_callback: Callable[[str, dict], None] # path, result -> None
+    apply_callback: Callable
+    # save_callback: Callable[[str, dict], None] # path, result -> None
 
     repeat: int = 1 
     parallelize: bool = False
@@ -39,5 +41,12 @@ class Task:
         self._id = TaskId(Task._count)
         Task._count += 1
 
+
+@dataclass
+class Task_ConfigSubset:
+    model: str
+    dataset: str
+    model_params: Mapping
+    training_params: Mapping
 
     
