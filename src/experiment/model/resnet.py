@@ -207,7 +207,8 @@ def ResNet(
 
 # yapf: disable
 NTK_ResNet18 = partial(ResNet, stage_sizes=STAGE_SIZES[18], conv_cls=NTK_Conv,
-                   stem_cls=ResNetStem, block_cls=ResNetBlock, dense_cls=NTK_Dense)
+                   stem_cls=ResNetStem, block_cls=ResNetBlock, dense_cls=NTK_Dense,
+                   norm_cls=None) # batch norm disabled
 
 ResNet18 = partial(ResNet, stage_sizes=STAGE_SIZES[18],
                    stem_cls=ResNetStem, block_cls=ResNetBlock)

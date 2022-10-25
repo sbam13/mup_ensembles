@@ -38,8 +38,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device], data_params: Ma
 
 def train(loss_fn: Callable, params0: chex.ArrayTree, 
         optimizer: optax.GradientTransformation, Xtr, ytr, keys: chex.PRNGKey, 
-        devices: list[Device], epochs: int = 80, batch_size: int = 128) -> tuple[int, 
-        chex.ArrayTree, chex.Scalar]:
+        devices: list[Device], epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     num_batches = Xtr.shape[0] // batch_size
 
     # ----------------------------------------------------------------------
@@ -103,10 +102,12 @@ def train(loss_fn: Callable, params0: chex.ArrayTree,
 
     # training loop
     state = init_epoch_state
-    for _ in range(epochs):
+    losses = [None] * epochs
+    for e in range(epochs):
         state = update(state, Xtr, ytr)
+        losses[e] = state.model_state.loss
     
-    return state.model_state.params, state.model_state.loss
+    return state.model_state.params, losses
     
 
 def loss_and_deviation(apply_fn, loss, X_test, y_test):

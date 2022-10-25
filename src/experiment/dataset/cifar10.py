@@ -1,7 +1,6 @@
 # _CIFAR_10_LINK = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
 
 from logging import warning
-from multiprocessing.sharedctypes import Value
 from typing import Mapping
 
 from torchvision.datasets import CIFAR10

@@ -3,7 +3,8 @@ import shutil
 from enum import Enum
 from typing import Mapping
 
-from jax.numpy import float32
+import jax.numpy as jnp
+from jax import vmap
 
 from src.experiment.dataset.cifar10 import load_cifar_data
 from src.experiment.training.momentum import apply
@@ -34,18 +35,20 @@ class PreprocessDevice(PD):
         X_test0, y_test = data['test']
 
         # normalize
-        X = X0 / 255.0
-        X_test = X_test0 / 255.0
+        g = lambda W: W / jnp.sum(W ** 2, dtype=jnp.float32)
+        v_g = vmap(g)
+
+        X = v_g(X0)
+        X_test = v_g(X_test0)
 
         # Classes [0 - 4] are 1, classes [5 - 9] are -1
-        cifar2 = lambda labels: 2. * ((labels < 5).astype(float32)) - 1.
+        cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
 
         y, y_test = map(cifar2, (y, y_test))
 
         return dict(zip(data.keys(), [(X, y), (X_test, y_test)]))
 
-    def _copy_data_into_temp(self):
-        SOURCE_FOLDER = "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py"
+    def _copy_data_into_temp(self, SOURCE_FOLDER = "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py"):
         DEST_FOLDER = os.path.join(self.data_dir, "cifar-10-batches-py")
         shutil.copytree(SOURCE_FOLDER, DEST_FOLDER)
 

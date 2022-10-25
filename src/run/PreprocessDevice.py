@@ -3,7 +3,7 @@ import logging
 from typing import Mapping
 import jax
 
-from save_helpers import create_tmp_folders
+from src.run.save_helpers import create_tmp_folders
 from os.path import join
 
 from omegaconf import OmegaConf
@@ -12,7 +12,7 @@ class PreprocessDevice(ABC):
     # TODO: does replicate belong here? Fix.
     def __init__(self, save_dir: str, data_params: Mapping, replicate=True):
         self.save_dir = save_dir
-        self.data_dir = data_params.root_dir
+        self.data_dir = data_params['root_dir']
 
         try:
             create_tmp_folders(self.data_dir, self.save_dir)

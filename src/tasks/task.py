@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Callable, ClassVar, Dict, Mapping, NewType, Set
+from typing import Callable, ClassVar, Mapping, NewType, Set
 from enum import Enum
 
-from jax.random import PRNGKey
-from jaxlib.xla_extension import DeviceArray
+import chex
 
 TaskId = NewType('TaskId', int) # task 
 
@@ -23,7 +22,7 @@ class Task:
     training_params: Mapping
 
     type_: int
-    seed: PRNGKey
+    seed: chex.PRNGKey
 
     apply_callback: Callable
     # save_callback: Callable[[str, dict], None] # path, result -> None
@@ -35,7 +34,7 @@ class Task:
     _status: Status = field(default=Status.WAITING, init=False)
     
     _id: TaskId = field(init=False) 
-    _count: ClassVar[int] = 0
+    _count: ClassVar[int] = 0 # total number of tasks
 
     def __post_init__(self):
         self._id = TaskId(Task._count)
