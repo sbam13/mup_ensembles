@@ -39,7 +39,6 @@ class ConvBlock(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
         )(x)
-        norm = self.kernel_size * x
         if self.norm_cls:
             scale_init = (nn.initializers.zeros
                           if self.is_last else nn.initializers.ones)

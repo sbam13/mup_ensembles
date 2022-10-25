@@ -21,11 +21,11 @@ from src.experiment.training.root_schedule import blocked_polynomial_schedule
 class Result: 
     weight_init_key: chex.PRNGKey
     params_f: chex.ArrayTree
-    train_loss_f: chex.ArrayDevice
+    train_losses: chex.ArrayTree
     test_loss_f: chex.Scalar
     test_deviations_f: chex.ArrayDevice
 
-def initialize(keys: chex.PRNGKey, model, devices: list[Device], data_params: Mapping) -> FrozenDict:
+def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> FrozenDict:
     assert len(keys) == len(devices)
 
     CIFAR_SHAPE = (32, 32, 3)
@@ -163,14 +163,14 @@ def apply(key, data, devices, model_params, training_params):
 
     # train!
     epochs = training_params['epochs']
-    params_f, train_loss_f = train(loss_fn, params_0, optimizer, 
+    params_f, train_losses = train(loss_fn, params_0, optimizer, 
                                     *data['train'], apply_keys, devices, 
                                     epochs)
 
     test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, mse, *data['test'])
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
-                train_loss_f=train_loss_f, test_loss_f=test_loss_f, 
+                train_losses=train_losses, test_loss_f=test_loss_f, 
                 test_deviations_f=test_deviations_f)
     
     results = [None] * len(devices)
