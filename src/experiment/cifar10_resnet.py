@@ -10,6 +10,7 @@ from src.experiment.dataset.cifar10 import load_cifar_data
 from src.experiment.training.momentum import apply
 
 from src.run.PreprocessDevice import PreprocessDevice as PD
+import src.run.constants as constants
 from src.tasks.read_tasks import TaskReader as TR
 from src.tasks.task import Task
 
@@ -48,7 +49,7 @@ class PreprocessDevice(PD):
 
         return dict(zip(data.keys(), [(X, y), (X_test, y_test)]))
 
-    def _copy_data_into_temp(self, SOURCE_FOLDER = "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py"):
+    def _copy_data_into_temp(self, SOURCE_FOLDER = constants.CIFAR_FOLDER):
         DEST_FOLDER = os.path.join(self.data_dir, "cifar-10-batches-py")
         shutil.copytree(SOURCE_FOLDER, DEST_FOLDER)
 
