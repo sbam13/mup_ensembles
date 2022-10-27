@@ -28,6 +28,9 @@ class TaskRunner:
             task.save_callback(repeat_save_folder, result)
 
     def run_repeat_task(self, task: Task):
+        devices = self.preprocess_device.devices
+        num_devices = len(devices)
+        
         iters = task.repeat // num_devices
         # TODO: num_devices doesn't actually have to divide task.repeat!
         key = task.seed
@@ -49,8 +52,6 @@ class TaskRunner:
         # papply = pmap(apply, static_broadcasted_argnums=(2, 3)) # apply (key, data) -> result
 
         data = self.preprocess_device.data
-        devices = self.preprocess_device.devices
-        num_devices = len(devices)
         
         mp, tp = dict(task.model_params), dict(task.training_params)
         
