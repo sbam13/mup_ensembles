@@ -24,6 +24,6 @@ cd /tmp/gpu_scheduler
 
 rm conf/config.yaml
 
-printf "defaults:\n  - experiment: sweep_dataset_size_16384_lr_0.1" > conf/config.yaml
+printf "defaults:\n  - experiment: sweep_dataset_size_16384_lr_1e-5" > conf/config.yaml
 
 srun python3 main.py 

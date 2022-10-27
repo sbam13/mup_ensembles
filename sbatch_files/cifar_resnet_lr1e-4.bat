@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=lr1e-2
+#SBATCH --job-name=lr1e-3
 #SBATCH -e slurm-%j.err
 #SBATCH -o slurm-%j.out
 #SBATCH --time=3:00:00
@@ -24,6 +24,6 @@ cd /tmp/gpu_scheduler
 
 rm conf/config.yaml
 
-printf "defaults:\n  - experiment: sweep_dataset_size_16384_lr_0.01" > conf/config.yaml
+printf "defaults:\n  - experiment: sweep_dataset_size_16384_lr_1e-4" > conf/config.yaml
 
 srun python3 main.py

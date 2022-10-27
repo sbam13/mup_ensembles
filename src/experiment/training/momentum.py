@@ -14,20 +14,13 @@ from jax.lax import scan
 from jax.random import permutation, split
 from jaxlib.xla_extension import Device
 from src.experiment.model import ResNet18
+from src.experiment.training import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
 from tqdm import trange
 
 # TODO: ensure batching is consistent !!!
 # split apply into train and predict
-
-@chex.dataclass
-class Result: 
-    weight_init_key: chex.PRNGKey
-    params_f: chex.ArrayTree
-    train_losses: chex.ArrayTree
-    test_loss_f: chex.Scalar
-    test_deviations_f: chex.ArrayDevice
 
 # MSE loss function
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
@@ -173,9 +166,12 @@ def apply(key, data, devices, model_params, training_params):
     batch_size = training_params['batch_size']
     block_steps = LR_DROP_STAGE_SIZE // batch_size
     eta_0 = training_params['eta_0']
-    momentum = training_params['momentum']
-    lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
-    optimizer = optax.sgd(lr_schedule, momentum)
+    # weight_decay = training_params['weight_decay'] * batch_size
+    # momentum = training_params['momentum']
+    # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
+    # optimizer = optax.sgd(lr_schedule, momentum)
+    optimizer = optax.adam(eta_0)
+    # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
     apply_fn = model.apply

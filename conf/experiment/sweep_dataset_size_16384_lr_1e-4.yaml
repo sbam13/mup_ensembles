@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-4
       momentum: 0.9
       weight_decay: 0.032
       batch_size: 128
