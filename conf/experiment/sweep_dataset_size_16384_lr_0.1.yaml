@@ -22,5 +22,5 @@ hyperparams:
     k: 0
     on_device: true
     data_seed: 352232
-    root_dir: /tmp/data
+    root_dir: /tmp/data-dir
 save_folder: /tmp/results
