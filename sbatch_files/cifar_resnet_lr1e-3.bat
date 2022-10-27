@@ -15,7 +15,7 @@ module load cuda/11.7.1-fasrc01 cudnn/8.5.0.96_cuda11-fasrc01 Anaconda3/2020.11
 source activate gs
 
 mkdir "/tmp/data-dir"
-cp -R "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py" "tmp/data-dir"
+cp -R "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py" "/tmp/data-dir"
 
 mkdir "/tmp/results"
 

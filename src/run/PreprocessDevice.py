@@ -18,7 +18,7 @@ class PreprocessDevice(ABC):
         self.devices = None
         self.data = None
 
-    def preprocess(self):
+    def preprocess(self, parallelize=True):
         """Initializes the PreprocessDevice object."""
         # try:
         #     create_tmp_folder(self.save_dir)
@@ -33,6 +33,7 @@ class PreprocessDevice(ABC):
 
         # maintains pmap order of devices
         self.devices = jax.lib.xla_bridge.get_backend().get_default_device_assignment(jax.device_count())
+        replicate = parallelize
         if replicate:
             self.data = jax.device_put_replicated(_data, self.devices)
             logging.info('Replicated data onto devices.')
