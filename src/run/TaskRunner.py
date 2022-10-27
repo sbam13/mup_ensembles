@@ -9,8 +9,6 @@ from src.tasks.task import Task, Task_ConfigSubset
 from os.path import join, exists
 from os import mkdir
 
-from omegaconf import OmegaConf
-
 from pickle import dump
 
 class TaskRunner:
@@ -59,39 +57,32 @@ class TaskRunner:
         
         for batch in range(0, iters):
             key = iter_keys[batch]
+            # data is replicated across devices, everything else is not
             batch_results = apply(key, data, devices, mp, tp)
 
             idx = batch * num_devices
             for replica, result in enumerate(batch_results):
                 local_result = device_get(result)
-                repeat_save_folder = join(save_folder, f'trial-replica-{idx + replica}')
-                if exists(repeat_save_folder):
-                    raise RuntimeError(f'Save folder for replica {idx + replica} for task {task._id} already exists.')
-                else:
-                    mkdir(repeat_save_folder)
-                    save_result(repeat_save_folder, local_result)
-                del local_result
-            
-            del local_result, result
+                save_result(save_folder, local_result, fname = f'trial_{idx + replica}_result.pkl')
+
 
 def save_config(dir: str, task: Task):
-    fname = 'task_config.yaml'
-    abs_path_fname = join(dir, fname)
-    tcs = Task_ConfigSubset(task.model, task.dataset, task.model_params, task.training_params)
-    tcs_yaml = OmegaConf.to_yaml(tcs)
+    FNAME = 'task_config.pkl'
+    abs_path_fname = join(dir, FNAME)
+    tcs = Task_ConfigSubset(task.model, task.dataset, task.model_params, 
+                            task.training_params, task.seed, task.repeat)
     try:
-        with open(abs_path_fname, 'x') as f:
-            f.write(tcs_yaml)
+        with open(abs_path_fname, 'xb') as f:
+            dump(tcs, f)
     except OSError:
         logging.error('Could not write task config file.')
         raise
 
-def save_result(dir: str, result: Result):
-    fname = 'trial_result.pkl'
+def save_result(dir: str, result: Result, fname):
     abs_path_fname = join(dir, fname)
     try:
         with open(abs_path_fname, 'xb') as f:
             dump(result, f)
     except OSError:
-        logging.error(f'Could not write task result file in directory "{dir}".')
+        logging.error(f'Could not write task result file "{fname}" in directory "{dir}".')
         raise

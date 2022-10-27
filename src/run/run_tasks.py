@@ -8,6 +8,7 @@ from src.run.TaskRunner import TaskRunner
 from logging import info, error
 
 def _run_task(task: Task, runner: TaskRunner):
+    info(f'Task {task._id} starting... Task specifications:\n', task.model_params, '\n', task.training_params)
     start = time.time()
     try:
         if task.parallelize:
@@ -15,13 +16,14 @@ def _run_task(task: Task, runner: TaskRunner):
         else:
             runner.run_serial_task(task)
     except BaseException as e:
-            error(f'Task {task._id} raised an exception. Task and error specification: ', task.model_params, task.training_params, e) 
+            error(f'Task {task._id} raised an exception.') 
+            raise
     end = time.time()
     elapsed = end - start
-    info(f'Task completed. Elapsed time (s): {elapsed}. Task specifications: ', task.model_params, task.training_params)
+    info(f'Task {task._id} completed. Elapsed time (s): {elapsed}.')
 
 def run_tasks(tasks: list[Task], specs: PreprocessDevice):
     runner = TaskRunner(specs)
 
-    partial_run_task = partial(_run_task, runner=runner)
-    map(partial_run_task, tasks)
+    for task in tasks:
+        _run_task(task, runner)

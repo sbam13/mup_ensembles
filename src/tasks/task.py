@@ -18,8 +18,8 @@ class Task:
     model: str
     dataset: str
     
-    model_params: Mapping
-    training_params: Mapping
+    model_params: dict
+    training_params: dict
 
     type_: int
     seed: chex.PRNGKey
@@ -43,9 +43,15 @@ class Task:
 
 @dataclass
 class Task_ConfigSubset:
+    """Subset of config to be saved."""
     model: str
     dataset: str
-    model_params: Mapping
-    training_params: Mapping
+    
+    model_params: dict
+    training_params: dict
+
+    seed: chex.PRNGKey
+
+    repeat: int 
 
     

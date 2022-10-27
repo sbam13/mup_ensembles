@@ -1,13 +1,13 @@
 from functools import partial
 from typing import Callable
-from logging import info
+from wsgiref.util import setup_testing_defaults
 
 import chex
 import jax.numpy as jnp
 import optax
 
-from flax.core.frozen_dict import FrozenDict
-from jax import pmap, tree_map, value_and_grad
+from flax.core.frozen_dict import FrozenDict, freeze
+from jax import pmap, tree_map, value_and_grad, vmap
 from jax import device_put_replicated, device_put_sharded
 from jax.lax import scan
 
@@ -15,8 +15,6 @@ from jax.random import permutation, split
 from jaxlib.xla_extension import Device
 from src.experiment.model import ResNet18
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
-
-from tqdm import trange
 
 # TODO: ensure batching is consistent !!!
 # split apply into train and predict
@@ -33,22 +31,18 @@ class Result:
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
 
 
-def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> FrozenDict:
-    assert len(keys) == len(devices)
-
+def initialize(keys: chex.PRNGKey, model) -> FrozenDict:
     CIFAR_SHAPE = (32, 32, 3)
     dummy_input = jnp.zeros((1,) + CIFAR_SHAPE) # added batch index
-    replicated_dummy = device_put_replicated(dummy_input, devices)
 
     # get shape data from model
-    return pmap(model.init)(keys, replicated_dummy)
+    return model.init(keys, dummy_input)
 
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
         optimizer: optax.GradientTransformation, Xtr, ytr, keys: chex.PRNGKey, 
-        alpha: chex.Scalar,
-        devices: list[Device], epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
-    num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
+        alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+    num_batches = Xtr.shape[0] // batch_size # 0 is sharding dimension
 
     # ----------------------------------------------------------------------
     # @chex.dataclass
@@ -75,7 +69,6 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         key: chex.PRNGKey
         model_state: DistributedStepState
 
-    @partial(pmap)
     def update(state: DistributedEpochState, 
                 Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice) -> DistributedEpochState:
         key, other = split(state.key, 2)
@@ -97,10 +90,12 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             # param_shape = tree_map(lambda z: z.shape, params)
             # data_shape = tree_map(lambda z: z.shape, batch)
             mutable_p, immutable_p = params['params'], params['scaler']
+            batch_yhat = centered_apply(params, batch)
             loss_value, grads = loss_grad_fn(mutable_p, immutable_p, batch, labels)
             updates, opt_state = optimizer.update(grads, opt_state, params)
             mutable_p = optax.apply_updates(mutable_p, updates)
             updated_params = params.copy(dict(params=mutable_p))
+            chex.assert_tree_all_finite(updated_params)
             # apply updates only to 
             return DistributedStepState(loss=loss_value, params=updated_params, p0=step_state.p0, opt_state=opt_state), None
     
@@ -113,25 +108,26 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         ytr_sb = ytr_shuffled.reshape((num_batches, batch_size, *ytr_shuffled.shape[1:]))
 
         # SGD steps over batches in epoch
-        model_state_e, _ = scan(step, state.model_state, (Xtr_sb, ytr_sb))
+        step_state = state.model_state
+        for b in range(num_batches):
+            step_state, _ = step(step_state, (Xtr_sb[b], ytr_sb[b]))
 
-        return DistributedEpochState(key=other, model_state=model_state_e)
+        return DistributedEpochState(key=other, model_state=step_state)
     
     # ----------------------------------------------------------------------
-    losses0 = device_put_replicated(jnp.array(0.0), devices)
+    losses0 = jnp.array(0.0)
 
-    init_opt_state = pmap(optimizer.init)(params0['params'])
+    init_opt_state = optimizer.init(params0['params'])
     init_step_state = DistributedStepState(loss=losses0, params=params0, p0=params0, opt_state=init_opt_state)
     init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
     # training loop
     state = init_epoch_state
     losses = [None] * epochs
-    info('Entering training loop...')
-    for e in trange(epochs):
+    for e in range(epochs):
         state = update(state, Xtr, ytr)
         losses[e] = state.model_state.loss
-
+    
     # note that return value is a pytree
     return state.model_state.params, losses
     
@@ -148,23 +144,22 @@ def loss_and_deviation(apply_fn, alpha, params, params_0, X_test, y_test):
         test_loss = mse(y_test, yhat)
         return test_loss, deviation
     
-    return pmap(compute_ld)(params, params_0, X_test, y_test)
+    return compute_ld(params, params_0, X_test, y_test)
 
 
-def apply(key, data, devices, model_params, training_params):
+def apply(key, data, model_params, training_params):
     N = model_params['N']
     hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
     model = ResNet18(hidden_sizes=hidden_sizes, n_classes=1)
 
     # get sharded keys
-    keys = split(key, num=len(devices) * 2)
+    keys = split(key, num=2)
     del key
 
-    shard = lambda key_array: device_put_sharded(tuple(key_array), devices)
-    init_keys, apply_keys = shard(keys[:len(devices)]), shard(keys[len(devices):])
+    init_keys, apply_keys = keys[0], keys[1]
 
     # get initial parameters
-    params_0 = initialize(init_keys, model, devices)
+    params_0 = initialize(init_keys, model)
     # print(tree_map(lambda z: z.shape, params_0))
 
     # compose optimizer
@@ -183,25 +178,21 @@ def apply(key, data, devices, model_params, training_params):
 
     # train!
     epochs = training_params['epochs']
-    P = data['train'][0].shape[1] # 0 is sharding dimension
+    P = data['train'][0].shape[0] # 0 is sharding dimension
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
     params_f, train_losses = train(apply_fn, params_0, optimizer, 
                                     *data['train'], apply_keys,
-                                    alpha,
-                                    devices, epochs, batch_size)
+                                    alpha, epochs, batch_size)
 
     test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, 
                                             alpha, params_f, params_0, 
                                             *data['test'])
 
-    parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
+    result = Result(weight_init_key=init_keys, params_f=params_f, 
                 train_losses=train_losses, test_loss_f=test_loss_f, 
                 test_deviations_f=test_deviations_f)
     
-    results = [None] * len(devices)
-    for d in range(len(devices)):
-        results[d] = tree_map(lambda z: z[d], parallel_result)
-    return results
+    return result
     
 

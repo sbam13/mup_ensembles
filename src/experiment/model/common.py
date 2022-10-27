@@ -6,10 +6,13 @@ from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Unio
 import flax
 import flax.linen as nn
 
+import jax.numpy as jnp
+
 ModuleDef = Callable[..., Callable]
 # InitFn = Callable[[PRNGKey, Shape, DType], Array]
 InitFn = Callable[[Any, Iterable[int], Any], Any]
 
+RELU_SIGMA = 2.0
 
 class ConvBlock(nn.Module):
     n_filters: int
@@ -51,23 +54,19 @@ class ConvBlock(nn.Module):
 
 
 class NTK_Conv(nn.Conv):
-    kernel_init = nn.initializers.normal(1.0)
-
     @nn.compact
-    def __call__(self, x):
-        fan_in_size = lambda shape: self.kernel_size[0] * self.kernel_size[1] * shape[-1]       
-        norm = self.variable('scaler', 'fan-in', fan_in_size, x.shape[1:])
-        return (1.0 / norm.value) * super().__call__(x)
+    def __call__(self, x): # TODO: change so this is not idiosync for CIFAR
+        sqrt_fan_in_size = lambda shape: jnp.sqrt(self.kernel_size[0] * self.kernel_size[1] * shape[-1])       
+        norm = self.variable('scaler', 'fan-in', sqrt_fan_in_size, x.shape[1:])
+        return (RELU_SIGMA / norm.value) * super().__call__(x)
         
 
 class NTK_Dense(nn.Dense):
-    kernel_init = nn.initializers.normal(1.0)
-
     @nn.compact
     def __call__(self, x):
-        fan_in_size = lambda shape: shape[-1]
-        norm = self.variable('scaler', 'fan-in', fan_in_size, x.shape[1:])
-        return (1.0 / norm.value) * super().__call__(x)
+        sqrt_fan_in_size = lambda shape: jnp.sqrt(shape[-1])
+        norm = self.variable('scaler', 'fan-in', sqrt_fan_in_size, x.shape[1:])
+        return (RELU_SIGMA / norm.value) * super().__call__(x)
 
 
 def slice_variables(variables: Mapping[str, Any],

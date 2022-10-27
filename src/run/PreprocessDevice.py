@@ -10,7 +10,7 @@ from omegaconf import OmegaConf
 
 class PreprocessDevice(ABC):
     # TODO: does replicate belong here? Fix.
-    def __init__(self, save_dir: str, data_params: Mapping, replicate=True):
+    def __init__(self, save_dir: str, data_params: dict, replicate=True):
         self.save_dir = save_dir
         self.data_dir = data_params['root_dir']
 

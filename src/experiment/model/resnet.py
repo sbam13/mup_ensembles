@@ -6,7 +6,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import jax.numpy as jnp
 from flax import linen as nn
 
-from .common import ConvBlock, ModuleDef, NTK_Conv, NTK_Dense
+from .common import ConvBlock, ModuleDef, NTK_Conv, NTK_Dense, InitFn
 # from .splat import SplAtConv2d
 
 STAGE_SIZES = {
@@ -22,10 +22,11 @@ STAGE_SIZES = {
 
 class ResNetStem(nn.Module):
     conv_block_cls: ModuleDef = ConvBlock
+    num_filters: int = 64
 
     @nn.compact
     def __call__(self, x):
-        return self.conv_block_cls(64,
+        return self.conv_block_cls(self.num_filters,
                                    kernel_size=(7, 7),
                                    strides=(2, 2),
                                    padding=[(3, 3), (3, 3)])(x)
@@ -178,6 +179,7 @@ def ResNet(
     *,
     stage_sizes: Sequence[int],
     n_classes: int,
+    kernel_init: InitFn = nn.initializers.kaiming_normal(),
     hidden_sizes: Sequence[int] = (64, 128, 256, 512),
     conv_cls: ModuleDef = nn.Conv,
     norm_cls: Optional[ModuleDef] = partial(nn.BatchNorm, momentum=0.9),
@@ -189,8 +191,8 @@ def ResNet(
                                 padding=((1, 1), (1, 1))),
     dense_cls: ModuleDef = nn.Dense
 ) -> nn.Sequential:
-    conv_block_cls = partial(conv_block_cls, conv_cls=conv_cls, norm_cls=norm_cls)
-    stem_cls = partial(stem_cls, conv_block_cls=conv_block_cls)
+    conv_block_cls = partial(conv_block_cls, conv_cls=conv_cls, norm_cls=norm_cls, kernel_init=kernel_init)
+    stem_cls = partial(stem_cls, conv_block_cls=conv_block_cls, num_filters=hidden_sizes[0])
     block_cls = partial(block_cls, conv_block_cls=conv_block_cls)
 
     layers = [stem_cls(), pool_fn]
@@ -201,14 +203,14 @@ def ResNet(
             layers.append(block_cls(n_hidden=hsize, strides=strides))
 
     layers.append(partial(jnp.mean, axis=(1, 2)))  # global average pool
-    layers.append(dense_cls(n_classes))
+    layers.append(dense_cls(n_classes, kernel_init=kernel_init))
     return nn.Sequential(layers)
 
 
 # yapf: disable
 NTK_ResNet18 = partial(ResNet, stage_sizes=STAGE_SIZES[18], conv_cls=NTK_Conv,
                    stem_cls=ResNetStem, block_cls=ResNetBlock, dense_cls=NTK_Dense,
-                   norm_cls=None) # batch norm disabled
+                   norm_cls=None, kernel_init=nn.initializers.normal(1.0)) # batch norm disabled
 
 ResNet18 = partial(ResNet, stage_sizes=STAGE_SIZES[18],
                    stem_cls=ResNetStem, block_cls=ResNetBlock)

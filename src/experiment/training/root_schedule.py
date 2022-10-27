@@ -19,7 +19,8 @@ def blocked_polynomial_schedule(
 
   block_steps = float(block_steps)
   def schedule(count):
-    count = jnp.max(count - transition_begin, 0)
+    count = jnp.clip(count - transition_begin, a_min=0)
     count_level = jnp.floor(count / block_steps)
-    return init_value * ((1 + count_level) ** power)
+    lr = init_value * ((1 + count_level) ** power)
+    return lr
   return schedule
