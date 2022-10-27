@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path='conf', config_name='config')
 def main(cfg: DictConfig):
-    log.info(f'Found the following devices: ', str(jax.devices()))
+    log.info(f'Found {len(jax.devices())} devices.')
     # cfg = (setting, hyperparams)
     setting = cfg.setting
     try:

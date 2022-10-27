@@ -18,7 +18,7 @@ class PreprocessDevice(ABC):
         self.devices = None
         self.data = None
 
-    def preprocess():
+    def preprocess(self):
         """Initializes the PreprocessDevice object."""
         try:
             create_tmp_folder(self.save_dir)
