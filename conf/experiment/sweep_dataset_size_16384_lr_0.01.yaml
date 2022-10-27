@@ -21,6 +21,7 @@ hyperparams:
     P: 16384
     k: 0
     on_device: true
+    random_subset: true
     data_seed: 352232
     root_dir: /tmp/data-dir
 save_folder: /tmp/results

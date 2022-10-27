@@ -17,7 +17,7 @@ class DataParams:
     P: int = MISSING
     k: int = 0 # no target fn
     on_device: bool = True
-    random_subset = True
+    random_subset: bool = True
     data_seed: int = MISSING
     root_dir: str = "/tmp/data-dir"
 
