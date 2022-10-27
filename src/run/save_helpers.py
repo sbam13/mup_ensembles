@@ -3,7 +3,7 @@ import shutil
 
 import src.run.constants as constants
 
-def create_tmp_folders(data_folder="/tmp/data", results_folder="/tmp/results"):
+def create_tmp_folders(data_folder="/tmp/data-dir", results_folder="/tmp/results"):
     os.mkdir(data_folder)
     os.mkdir(results_folder)
     return data_folder, results_folder
