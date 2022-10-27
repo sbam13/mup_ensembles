@@ -4,7 +4,9 @@ from enum import Enum
 from typing import Mapping
 
 import jax.numpy as jnp
-from jax import vmap
+from jax import vmap, jit
+from jax.random import PRNGKey
+from jax.lax import cond
 
 from src.experiment.dataset.cifar10 import load_cifar_data
 from src.experiment.training.momentum import apply
@@ -16,6 +18,7 @@ from src.tasks.task import Task
 
 from flax.core.frozen_dict import freeze
 
+from omegaconf import OmegaConf
 
 class TaskType(Enum):
     TRAIN_NN = 0
@@ -31,23 +34,35 @@ class Callbacks(Enum):
 # TODO: add to validate_task the check that batch_size divides train and test size
 
 class PreprocessDevice(PD):
-    def _normalize_data(self, data: dict):
+    def _whiten_data(self, data: dict):
+        """Center and normalize so that x-values are on the sphere."""
         X0, y = data['train']
         X_test0, y_test = data['test']
 
-        # normalize
-        g = lambda W: W / jnp.sum(W ** 2, dtype=jnp.float32)
-        v_g = vmap(g)
+        # center using training mean
+        train_mean = jnp.mean(X0, axis=0)
+        X0 -= train_mean
+        X_test0 -= train_mean
 
-        X = v_g(X0)
-        X_test = v_g(X_test0)
+        # normalize
+        def normalize(W): 
+            # TODO: make this jax.lax.cond
+            im_norm = jnp.sum(W ** 2, dtype=jnp.float32)
+            div_by_scalar = lambda z, c: z / c 
+            id = lambda z, c: z
+            return cond(jnp.isclose(im_norm, 0.0), id, div_by_scalar, W, jnp.sqrt(im_norm))
+
+        v_normalize = jit(vmap(normalize))
+
+        X = v_normalize(X0)
+        X_test = v_normalize(X_test0)
 
         # Classes [0 - 4] are 1, classes [5 - 9] are -1
         cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
 
         y, y_test = map(cifar2, (y, y_test))
 
-        return dict(zip(data.keys(), [(X, y), (X_test, y_test)]))
+        return dict(train=(X, y), test=(X_test, y_test))
 
     def _copy_data_into_temp(self, SOURCE_FOLDER = constants.CIFAR_FOLDER):
         DEST_FOLDER = os.path.join(self.data_dir, "cifar-10-batches-py")
@@ -57,9 +72,9 @@ class PreprocessDevice(PD):
         self._copy_data_into_temp()
 
         data = load_cifar_data(data_params)
-        normalized_data = self._normalize_data(data)
+        whitened_data = self._whiten_data(data)
         
-        return freeze(normalized_data)
+        return freeze(whitened_data)
 
 
 class TaskReader(TR):
@@ -70,12 +85,13 @@ class TaskReader(TR):
 
     def _read_task(self, config: Mapping):
         try:
+            key = PRNGKey(config['seed'])
             task = Task(model='resnet18',
                         dataset='cifar10',
-                        model_params=config['model_params'],
-                        training_params=config['training_params'],
+                        model_params=OmegaConf.to_container(config['model_params']),
+                        training_params=OmegaConf.to_container(config['training_params']),
                         type_=self.task_type,
-                        seed=config['seed'],
+                        seed=key,
                         repeat=config['repeat'],
                         parallelize=config['parallelize'],
                         # save_callback=Callbacks.save_callback,

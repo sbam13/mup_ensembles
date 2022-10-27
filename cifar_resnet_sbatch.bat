@@ -2,8 +2,8 @@
 
 rem TODO amend
 #SBATCH --job-name=gpu
-#SBATCH --output=gpu.out 
-#SBATCH --error=gpu.err  
+#SBATCH -e slurm-%j.err
+#SBATCH -o slurm-%j.out
 #SBATCH --time=01:00:00  
 #SBATCH --nodes=1        
 #SBATCH --partition=pehlevan_gpu
