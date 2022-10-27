@@ -28,7 +28,7 @@ class Task:
     # save_callback: Callable[[str, dict], None] # path, result -> None
 
     repeat: int = 1 
-    parallelize: bool = False
+    parallelize: bool = True
     dependencies: Set = field(default_factory=set)
     
     _status: Status = field(default=Status.WAITING, init=False)
