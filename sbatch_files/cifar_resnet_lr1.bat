@@ -22,4 +22,6 @@ rm conf/config.yaml
 
 echo "defaults:  - experiment: sweep_dataset_size_16384_lr_1" > conf/config.yaml
 
+chmod +x ./main.py
+
 srun ./main.py
