@@ -51,7 +51,6 @@ class Setting:
 class Config:
     setting: Setting
     hyperparams: TaskListConfig
-    save_folder: str
 
 
 # def conf_register() -> None:

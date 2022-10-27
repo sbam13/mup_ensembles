@@ -53,8 +53,7 @@ def _gen_sweep(alpha_vals, N_vals, P, bag, es, seed_matrix, data_seed):
             tasks.task_list.append(a_N_task)
     
     setting = Setting()
-    save_folder = join(SAVE_DIR, f'results_dataset_size_{P}_data_seed_{bag}')
-    conf = Config(setting, tasks, save_folder)
+    conf = Config(setting, tasks)
 
     str_conf = OmegaConf.to_yaml(conf)
     return '# @package _global_\n' + str_conf

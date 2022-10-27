@@ -23,4 +23,4 @@ hyperparams:
     on_device: true
     data_seed: 352232
     root_dir: /tmp/data
-save_folder: /tmp/results/results_dataset_size_16384_data_seed_0
+save_folder: /tmp/results
