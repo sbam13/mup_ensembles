@@ -9,6 +9,7 @@ from src.run.save_helpers import copy_results_into_permanent
 
 from src.experiment.names import names
 from src.run.run_tasks import run_tasks
+from src.run import constants
 
 # TODO: timing!
 
@@ -28,7 +29,7 @@ def main(cfg: DictConfig):
     
     reader = module_.TaskReader(hp_list)
     
-    save_dir = cfg.save_folder
+    save_dir = constants.LOCAL_RESULTS_FOLDER
     
     log.info('Loading data...')
     PD = module_.PreprocessDevice(save_dir, cfg.hyperparams.data_params)
