@@ -19,7 +19,7 @@ class DataParams:
     on_device: bool = True
     random_subset = True
     data_seed: int = MISSING
-    root_dir: str = "/tmp/data"
+    root_dir: str = "/tmp/data-dir"
 
 
 @dataclass
