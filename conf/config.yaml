@@ -1,2 +1,1 @@
-defaults:
-  - experiment: sweep_dataset_size_290_data_bag_0
+defaults:  - experiment: sweep_dataset_size_16384_lr_0.001
