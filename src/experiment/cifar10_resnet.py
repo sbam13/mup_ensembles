@@ -69,7 +69,7 @@ class PreprocessDevice(PD):
         shutil.copytree(SOURCE_FOLDER, DEST_FOLDER)
 
     def load_data(self, data_params):
-        self._copy_data_into_temp()
+        # self._copy_data_into_temp()
 
         data = load_cifar_data(data_params)
         whitened_data = self._whiten_data(data)

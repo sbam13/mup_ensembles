@@ -14,6 +14,11 @@ module load cuda/11.7.1-fasrc01 cudnn/8.5.0.96_cuda11-fasrc01 Anaconda3/2020.11
 
 source activate gs
 
+mkdir "/tmp/data-dir"
+cp -R "/n/holystore01/LABS/pehlevan_lab/Users/sab/cifar-10-batches-py" "tmp/data-dir"
+
+mkdir "/tmp/results"
+
 cp -R /n/home07/ssainathan/workplace/gpu_scheduler /tmp
 cd /tmp/gpu_scheduler
 
@@ -21,6 +26,4 @@ rm conf/config.yaml
 
 printf "defaults:\n  - experiment: sweep_dataset_size_16384_lr_0.001" > conf/config.yaml
 
-chmod +x ./main.py
-
-srun ./main.py
+srun python3 main.py

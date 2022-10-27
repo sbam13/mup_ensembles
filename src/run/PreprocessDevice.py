@@ -20,12 +20,12 @@ class PreprocessDevice(ABC):
 
     def preprocess(self):
         """Initializes the PreprocessDevice object."""
-        try:
-            create_tmp_folder(self.save_dir)
-            create_tmp_folder(self.data_dir)
-        except OSError:
-            logging.error('Could not create temporary folders.')
-            raise
+        # try:
+        #     create_tmp_folder(self.save_dir)
+        #     create_tmp_folder(self.data_dir)
+        # except OSError:
+        #     logging.error('Could not create temporary folders.')
+        #     raise
         
         self._save_data_params(self.save_dir, self.data_params)
 
