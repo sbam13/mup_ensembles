@@ -11,12 +11,15 @@ from src.experiment.names import names
 from src.run.run_tasks import run_tasks
 from src.run import constants
 
+import jax
+
 # TODO: timing!
 
 log = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path='conf', config_name='config')
 def main(cfg: DictConfig):
+    log.info(f'Found the following devices: ', str(jax.devices()))
     # cfg = (setting, hyperparams)
     setting = cfg.setting
     try:
@@ -31,8 +34,10 @@ def main(cfg: DictConfig):
     
     save_dir = constants.LOCAL_RESULTS_FOLDER
     
-    log.info('Loading data...')
     PD = module_.PreprocessDevice(save_dir, cfg.hyperparams.data_params)
+    
+    log.info('Loading data...')
+    PD.preprocess()
     log.info('...done.')
 
     log.info('Running tasks...')
