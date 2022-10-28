@@ -54,8 +54,8 @@ class PreprocessDevice(ABC):
         try:
             with open(abs_path_fname, 'x') as f:
                 f.write(dp_yaml)
-        except OSError:
-            logging.error('Could not write task config file.')
+        except OSError as e:
+            logging.error('Could not write data config file.', e)
             raise
         
 
