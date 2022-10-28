@@ -76,7 +76,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
         def loss_fn(mut_p, immut_p, Xin, yin):
             combined = {'params': mut_p, 'scaler': immut_p}
-            return mse(centered_apply(combined, Xin), yin)
+            return (1.0 / alpha**2) * mse(centered_apply(combined, Xin), yin)
         loss_grad_fn = value_and_grad(loss_fn, argnums=0)
 
         def step(step_state: DistributedStepState, data: tuple):

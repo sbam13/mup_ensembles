@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -13,10 +13,36 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 16
-      alpha: 1.0
+      alpha: 0.01
     repeat: 1
     parallelize: true
-    seed: 58508
+    seed: 893880
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 16
+      alpha: 0.001
+    repeat: 1
+    parallelize: true
+    seed: 473979
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 16
+      alpha: 0.0001
+    repeat: 1
+    parallelize: true
+    seed: 746538
   data_params:
     P: 128
     k: 0
