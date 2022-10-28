@@ -19,7 +19,10 @@ def see_lr_losses(FOLDER=REMOTE_RESULTS_FOLDER):
         if not rf.startswith('results-20221028'):
             continue
         task_folder = join(FOLDER, rf, 'task-0')
-        conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
+        try:
+            conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
+        except:
+            conf = OmegaConf.load(join(task_folder, 'task_config.yaml'))
         with open(join(task_folder, 'trial_0_result.pkl'), 'rb') as f:
             res = pickle.load(f)
         lr = conf.training_params.eta_0
