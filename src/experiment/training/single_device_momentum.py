@@ -16,16 +16,9 @@ from jaxlib.xla_extension import Device
 from src.experiment.model import ResNet18
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
-# TODO: ensure batching is consistent !!!
+# TODO: 
+# ensure batching is consistent !!!
 # split apply into train and predict
-
-@chex.dataclass
-class Result: 
-    weight_init_key: chex.PRNGKey
-    params_f: chex.ArrayTree
-    train_losses: chex.ArrayTree
-    test_loss_f: chex.Scalar
-    test_deviations_f: chex.ArrayDevice
 
 # MSE loss function
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)

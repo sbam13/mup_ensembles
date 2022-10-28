@@ -8,7 +8,7 @@ from src.run.TaskRunner import TaskRunner
 from logging import info, error
 
 def _run_task(task: Task, runner: TaskRunner):
-    info(f'Task {task._id} starting... Task specifications:\n', task.model_params, '\n', task.training_params)
+    info(f'Task {task._id} starting...')
     start = time.time()
     try:
         if task.parallelize:

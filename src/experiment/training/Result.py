@@ -1,5 +1,3 @@
-import jax.numpy as jnp
-import jax
 import chex
 
 @chex.dataclass

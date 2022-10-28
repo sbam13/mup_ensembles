@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=lr1e-1
+#SBATCH --job-name=lr1e-5
 #SBATCH -e slurm-%j.err
 #SBATCH -o slurm-%j.out
 #SBATCH --time=3:00:00

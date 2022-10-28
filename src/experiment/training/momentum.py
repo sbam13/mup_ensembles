@@ -8,16 +8,15 @@ import optax
 
 from flax.core.frozen_dict import FrozenDict
 from jax import pmap, tree_map, value_and_grad
-from jax import device_put_replicated, device_put_sharded
+from jax import device_put_replicated, device_put_sharded, device_get
 from jax.lax import scan
 
 from jax.random import permutation, split
 from jaxlib.xla_extension import Device
 from src.experiment.model import ResNet18
-from src.experiment.training import Result
+from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
-from tqdm import trange
 
 # TODO: ensure batching is consistent !!!
 # split apply into train and predict
@@ -121,10 +120,14 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     state = init_epoch_state
     losses = [None] * epochs
     info('Entering training loop...')
-    for e in trange(epochs):
+    for e in range(epochs):
         state = update(state, Xtr, ytr)
         losses[e] = state.model_state.loss
-
+    
+    # TODO: comment out these two lines
+    train_loss_f = device_get(losses[-1])
+    info('Exiting training loop. Final training losses: ', train_loss_f)
+    
     # note that return value is a pytree
     return state.model_state.params, losses
     
