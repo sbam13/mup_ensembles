@@ -79,4 +79,4 @@ def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
 
 
 if __name__ == '__main__':
-    gen_sweeps([1.0e-8, 1.0e-7, 1.0e-6, 1.0e-5], [1.0], [64], [16384], 1, 1, 1, 29384, 42349)
+    gen_sweeps([10 ** -c for c in range(1, 9)], [1.0], [16], [128], 1, 1, 1, 4256, 29384)

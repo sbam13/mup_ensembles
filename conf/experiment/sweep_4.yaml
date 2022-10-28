@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.01
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -24,4 +24,4 @@ hyperparams:
     random_subset: true
     data_seed: 419668
     root_dir: data-dir
-base_dir: /tmp/1
+base_dir: /tmp/4
