@@ -5,6 +5,9 @@ import time
 from omegaconf import DictConfig
 
 import hydra
+
+from os.path import join
+
 from src.run.save_helpers import copy_results_into_permanent
 
 from src.experiment.names import names
@@ -32,9 +35,9 @@ def main(cfg: DictConfig):
     
     reader = module_.TaskReader(hp_list)
     
-    save_dir = constants.LOCAL_RESULTS_FOLDER
+    base_dir = cfg.base_dir
     
-    PD = module_.PreprocessDevice(save_dir, cfg.hyperparams.data_params)
+    PD = module_.PreprocessDevice(base_dir, cfg.hyperparams.data_params)
     
     log.info('Loading data...')
     PD.preprocess()
@@ -47,7 +50,7 @@ def main(cfg: DictConfig):
     log.info('Moving results into permanent...')
     timestr = time.strftime("%Y%m%d-%H%M%S")
     permanent_results_dirname = 'results-' + timestr
-    copy_results_into_permanent('/tmp/results', permanent_results_dirname)
+    copy_results_into_permanent(PD.save_dir, permanent_results_dirname)
     log.info('...done.')
 
 

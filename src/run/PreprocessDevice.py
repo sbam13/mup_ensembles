@@ -3,17 +3,19 @@ import logging
 from typing import Mapping
 import jax
 
-from src.run.save_helpers import create_tmp_folder
+# from src.run.save_helpers import create_tmp_folder
 from os.path import join
+
+from src.run import constants
 
 from omegaconf import OmegaConf
 
 class PreprocessDevice(ABC):
     # TODO: does replicate belong here? Fix.
-    def __init__(self, save_dir: str, data_params: dict, replicate=True):
-        self.save_dir = save_dir
+    def __init__(self, base_dir: str, data_params: dict, replicate=True):
+        self.save_dir = join(base_dir, constants.LOCAL_RESULTS_FOLDER)
         self.data_params = dict(data_params)
-        self.data_dir = self.data_params['root_dir']
+        self.data_dir = join(base_dir, self.data_params['root_dir'])
         
         self.devices = None
         self.data = None

@@ -1,2 +1,2 @@
 defaults:  
-  - experiment: sweep_dataset_size_16384_lr_0.001
+  - experiment: sweep_0
