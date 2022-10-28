@@ -181,6 +181,8 @@ def apply(key, data, devices, model_params, training_params):
     P = data['train'][0].shape[1] # 0 is sharding dimension
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
+    shapes = tree_map(lambda z: z.shape, data)
+    info('Data shapes: ', shapes)
     params_f, train_losses = train(apply_fn, params_0, optimizer, 
                                     *data['train'], apply_keys,
                                     alpha,
