@@ -90,7 +90,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             # data_shape = tree_map(lambda z: z.shape, batch)
             mutable_p, immutable_p = params['params'], params['scaler']
             loss_value, grads = loss_grad_fn(mutable_p, immutable_p, batch, labels)
-            updates, opt_state = optimizer.update(grads, opt_state, params)
+            updates, opt_state = optimizer.update(grads, opt_state, mutable_p)
             mutable_p = optax.apply_updates(mutable_p, updates)
             updated_params = params.copy(dict(params=mutable_p))
             # apply updates only to 
@@ -181,8 +181,7 @@ def apply(key, data, devices, model_params, training_params):
     P = data['train'][0].shape[1] # 0 is sharding dimension
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
-    shapes = tree_map(lambda z: z.shape, data)
-    info('Data shapes: ', shapes)
+
     params_f, train_losses = train(apply_fn, params_0, optimizer, 
                                     *data['train'], apply_keys,
                                     alpha,
