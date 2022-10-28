@@ -3,9 +3,9 @@
 #SBATCH --job-name=6
 #SBATCH -e slurm-%j.err
 #SBATCH -o slurm-%j.out
-#SBATCH --time=24:00:00
+#SBATCH --time=3:00:00
 #SBATCH --nodes=1
-#SBATCH --mem=128g
+#SBATCH --mem=64g
 #SBATCH --partition=pehlevan_gpu
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:1
