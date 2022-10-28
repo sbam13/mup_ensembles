@@ -5,11 +5,11 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 1.0e-05
+      eta_0: 1.0e-07
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
-      epochs: 80
+      epochs: 160
       full_batch_gradient: false
     model_params:
       'N': 64
