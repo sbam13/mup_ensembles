@@ -44,7 +44,7 @@ hyperparams:
     parallelize: true
     seed: 746538
   data_params:
-    P: 128
+    P: 16384
     k: 0
     on_device: true
     random_subset: true
