@@ -18,16 +18,17 @@ def see_lr_losses(FOLDER=REMOTE_RESULTS_FOLDER):
     for rf in results_files:
         if not rf.startswith('results-20221028'):
             continue
-        task_folder = join(FOLDER, rf, 'task-0')
-        try:
-            conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
-        except:
-            conf = OmegaConf.load(join(task_folder, 'task_config.yaml'))
-        with open(join(task_folder, 'trial_0_result.pkl'), 'rb') as f:
-            res = pickle.load(f)
-        lr = conf.training_params.eta_0
-        print('LR: ', lr)
-        print('Train Losses: ', res.train_losses[-5:], '\n')
+        for task in range(2):
+            task_folder = join(FOLDER, rf, f'task-{task}')
+            try:
+                conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
+            except:
+                conf = OmegaConf.load(join(task_folder, 'task_config.yaml'))
+            with open(join(task_folder, 'trial_0_result.pkl'), 'rb') as f:
+                res = pickle.load(f)
+            lr = conf.training_params.eta_0
+            print('LR: ', lr)
+            print('Train Losses: ', res.train_losses[-5:], '\n')
 
 def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
     results_files = os.listdir(FOLDER)
@@ -35,14 +36,15 @@ def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
     for rf in results_files:
         if not rf.startswith('results-20221028'):
             continue
-        task_folder = join(FOLDER, rf, 'task-0')
-        try:
-            conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
-        except:
-            conf = OmegaConf.load(join(task_folder, 'task_config.yaml'))
-        with open(join(task_folder, 'trial_0_result.pkl'), 'rb') as f:
-            res = pickle.load(f)
-        total_res.append((conf, res))
+        for task in range(2):
+            task_folder = join(FOLDER, rf, f'task-{task}')
+            try:
+                conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
+            except:
+                conf = OmegaConf.load(join(task_folder, 'task_config.yaml'))
+            with open(join(task_folder, 'trial_0_result.pkl'), 'rb') as f:
+                res = pickle.load(f)
+            total_res.append((conf, res))
     return total_res
 
 if __name__ == '__main__':
