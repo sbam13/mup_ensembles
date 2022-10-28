@@ -50,7 +50,7 @@ class Task_ConfigSubset:
     model_params: dict
     training_params: dict
 
-    seed: chex.PRNGKey
+    seed: tuple
 
     repeat: int 
 

@@ -5,9 +5,9 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 1.0e-6
+      eta_0: 1.0e-05
       momentum: 0.9
-      weight_decay: 0.032
+      weight_decay: 1.0e-05
       batch_size: 128
       epochs: 80
       full_batch_gradient: false
@@ -16,12 +16,12 @@ hyperparams:
       alpha: 1.0
     repeat: 1
     parallelize: true
-    seed: 596489
+    seed: 419668
   data_params:
     P: 16384
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 352232
-    root_dir: /tmp/data-dir
-save_folder: /tmp/results
+    data_seed: 849970
+    root_dir: data-dir
+base_dir: /tmp/1

@@ -123,11 +123,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     for e in range(epochs):
         state = update(state, Xtr, ytr)
         losses[e] = state.model_state.loss
-    
-    # TODO: comment out these two lines
-    train_loss_f = device_get(losses[-1])
-    info('Exiting training loop. Final training losses: ', train_loss_f)
-    
+    info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses
     

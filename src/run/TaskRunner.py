@@ -11,6 +11,8 @@ from os import mkdir
 
 from pickle import dump
 
+from omegaconf import OmegaConf
+
 class TaskRunner:
     def __init__(self, PD: PreprocessDevice) -> None:
         self.preprocess_device = PD
@@ -71,10 +73,11 @@ def save_config(dir: str, task: Task):
     FNAME = 'task_config.pkl'
     abs_path_fname = join(dir, FNAME)
     tcs = Task_ConfigSubset(task.model, task.dataset, task.model_params, 
-                            task.training_params, task.seed, task.repeat)
+                            task.training_params, tuple(map(int, task.seed)), 
+                            task.repeat)
     try:
-        with open(abs_path_fname, 'xb') as f:
-            dump(tcs, f)
+        with open(abs_path_fname, 'x') as f:
+            OmegaConf.save(config=tcs, f=abs_path_fname)
     except OSError:
         logging.error('Could not write task config file.')
         raise

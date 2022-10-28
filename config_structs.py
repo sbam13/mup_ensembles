@@ -19,7 +19,7 @@ class DataParams:
     on_device: bool = True
     random_subset: bool = True
     data_seed: int = MISSING
-    root_dir: str = "/tmp/data-dir"
+    root_dir: str = 'data-dir'
 
 
 @dataclass
@@ -51,6 +51,7 @@ class Setting:
 class Config:
     setting: Setting
     hyperparams: TaskListConfig
+    base_dir: str = ''
 
 
 # def conf_register() -> None:

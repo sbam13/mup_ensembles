@@ -1,0 +1,27 @@
+# @package _global_
+setting:
+  dataset: cifar10
+  model: resnet18
+hyperparams:
+  task_list:
+  - training_params:
+      eta_0: 0.01
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 80
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 1.0
+    repeat: 1
+    parallelize: true
+    seed: 419668
+  data_params:
+    P: 16384
+    k: 0
+    on_device: true
+    random_subset: true
+    data_seed: 849970
+    root_dir: data-dir
+base_dir: /tmp/4
