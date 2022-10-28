@@ -71,7 +71,7 @@ class PreprocessDevice(PD):
     def load_data(self, data_params):
         # self._copy_data_into_temp()
 
-        data = load_cifar_data(data_params)
+        data = load_cifar_data(self.data_dir, data_params)
         whitened_data = self._whiten_data(data)
         
         return freeze(whitened_data)

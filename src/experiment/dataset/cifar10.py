@@ -11,9 +11,7 @@ import jax.random as jr
 from jax.numpy import float32, array
 
 
-def load_cifar_data(data_params: Mapping) -> dict[str, tuple]:
-    data_dir = data_params['root_dir']
-
+def load_cifar_data(data_dir:str, data_params: Mapping) -> dict[str, tuple]:
     training_data = CIFAR10(data_dir, train=True, download=False)
     test_data = CIFAR10(data_dir, train=False, download=False)
 
