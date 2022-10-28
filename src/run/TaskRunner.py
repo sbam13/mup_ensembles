@@ -70,7 +70,7 @@ class TaskRunner:
 
 
 def save_config(dir: str, task: Task):
-    FNAME = 'task_config.pkl'
+    FNAME = 'task_config.yaml'
     abs_path_fname = join(dir, FNAME)
     tcs = Task_ConfigSubset(task.model, task.dataset, task.model_params, 
                             task.training_params, tuple(map(int, task.seed)), 
