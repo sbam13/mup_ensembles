@@ -29,6 +29,7 @@ class ConvBlock(nn.Module):
     norm_cls: Optional[ModuleDef] = partial(nn.BatchNorm, momentum=0.9)
 
     force_conv_bias: bool = False
+    use_bias: bool = True
 
     @nn.compact
     def __call__(self, x):
@@ -36,7 +37,7 @@ class ConvBlock(nn.Module):
             self.n_filters,
             self.kernel_size,
             self.strides,
-            use_bias=(not self.norm_cls or self.force_conv_bias),
+            use_bias=((not self.norm_cls or self.force_conv_bias) and self.use_bias),
             padding=self.padding,
             feature_group_count=self.groups,
             kernel_init=self.kernel_init,

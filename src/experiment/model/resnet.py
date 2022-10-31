@@ -189,9 +189,10 @@ def ResNet(
                                 window_shape=(3, 3),
                                 strides=(2, 2),
                                 padding=((1, 1), (1, 1))),
-    dense_cls: ModuleDef = nn.Dense
+    dense_cls: ModuleDef = nn.Dense,
+    use_bias: bool = True
 ) -> nn.Sequential:
-    conv_block_cls = partial(conv_block_cls, conv_cls=conv_cls, norm_cls=norm_cls, kernel_init=kernel_init)
+    conv_block_cls = partial(conv_block_cls, conv_cls=conv_cls, norm_cls=norm_cls, kernel_init=kernel_init, use_bias=use_bias)
     stem_cls = partial(stem_cls, conv_block_cls=conv_block_cls, num_filters=hidden_sizes[0])
     block_cls = partial(block_cls, conv_block_cls=conv_block_cls)
 
@@ -203,7 +204,7 @@ def ResNet(
             layers.append(block_cls(n_hidden=hsize, strides=strides))
 
     layers.append(partial(jnp.mean, axis=(1, 2)))  # global average pool
-    layers.append(dense_cls(n_classes, kernel_init=kernel_init))
+    layers.append(dense_cls(n_classes, use_bias=use_bias, kernel_init=kernel_init))
     return nn.Sequential(layers)
 
 

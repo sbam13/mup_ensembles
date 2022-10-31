@@ -13,7 +13,7 @@ from jax.lax import scan
 
 from jax.random import permutation, split
 from jaxlib.xla_extension import Device
-from src.experiment.model import ResNet18
+from src.experiment.model.resnet import NTK_ResNet18
 from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
@@ -57,29 +57,38 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # distributed pytrees
     @chex.dataclass
     class DistributedStepState:
-        loss: chex.Array
         params: chex.ArrayTree
-        p0: chex.ArrayTree # params at time 0
         opt_state: chex.ArrayTree
 
     @chex.dataclass
     class DistributedEpochState:
+        train_loss: chex.Scalar
         key: chex.PRNGKey
+        p0: chex.ArrayTree # params at time 0
         model_state: DistributedStepState
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
                 Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice) -> DistributedEpochState:
+        """Runs one epoch."""
         key, other = split(state.key, 2)
-        p0 = state.model_state.p0
+        p0 = state.p0
         # p0_shape = tree_map(lambda z:z.shape, p0)
+        
+        # loss and gradient functions -------------------------------
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        
+        alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
+        
         def loss_fn(mut_p, immut_p, Xin, yin):
             combined = {'params': mut_p, 'scaler': immut_p}
-            return (1.0 / alpha**2) * mse(centered_apply(combined, Xin), yin)
+            return alpha_scaled_loss(centered_apply(combined, Xin), yin)
+        
         loss_grad_fn = value_and_grad(loss_fn, argnums=0)
+        # -----------------------------------------------------------
 
-        def step(step_state: DistributedStepState, data: tuple):
+        def step(step_state: DistributedStepState, data: tuple) -> DistributedStepState:
+            """Takes an SGD step."""
         # unpack
             params = step_state.params
             opt_state = step_state.opt_state
@@ -89,12 +98,14 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             # param_shape = tree_map(lambda z: z.shape, params)
             # data_shape = tree_map(lambda z: z.shape, batch)
             mutable_p, immutable_p = params['params'], params['scaler']
-            loss_value, grads = loss_grad_fn(mutable_p, immutable_p, batch, labels)
+            _, grads = loss_grad_fn(mutable_p, immutable_p, batch, labels)
             updates, opt_state = optimizer.update(grads, opt_state, mutable_p)
+            
+            # apply updates only to mutable params
             mutable_p = optax.apply_updates(mutable_p, updates)
-            updated_params = params.copy(dict(params=mutable_p))
-            # apply updates only to 
-            return DistributedStepState(loss=loss_value, params=updated_params, p0=step_state.p0, opt_state=opt_state), None
+            updated_params = params.copy({'params': mutable_p})
+
+            return DistributedStepState(params=updated_params, opt_state=opt_state), None
     
 
         # shuffle
@@ -107,14 +118,18 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         # SGD steps over batches in epoch
         model_state_e, _ = scan(step, state.model_state, (Xtr_sb, ytr_sb))
 
-        return DistributedEpochState(key=other, model_state=model_state_e)
+        # compute train loss
+        epoch_params = model_state_e.params
+        epoch_train_loss = alpha_scaled_loss(centered_apply(epoch_params, Xtr), ytr)
+
+        return DistributedEpochState(train_loss=epoch_train_loss, key=other, p0=state.p0, model_state=model_state_e)
     
     # ----------------------------------------------------------------------
     losses0 = device_put_replicated(jnp.array(0.0), devices)
 
     init_opt_state = pmap(optimizer.init)(params0['params'])
-    init_step_state = DistributedStepState(loss=losses0, params=params0, p0=params0, opt_state=init_opt_state)
-    init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
+    init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
+    init_epoch_state = DistributedEpochState(train_loss=losses0, key=keys, p0=params0, model_state=init_step_state)
 
     # training loop
     state = init_epoch_state
@@ -122,7 +137,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
-        losses[e] = state.model_state.loss
+        losses[e] = state.train_loss
     info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses
@@ -145,8 +160,9 @@ def loss_and_deviation(apply_fn, alpha, params, params_0, X_test, y_test):
 
 def apply(key, data, devices, model_params, training_params):
     N = model_params['N']
-    hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
-    model = ResNet18(hidden_sizes=hidden_sizes, n_classes=1)
+    # hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
+    hidden_sizes = (N, 2 * N)
+    model = NTK_ResNet18(hidden_sizes=hidden_sizes, stage_sizes=(2, 2), n_classes=1)
 
     # get sharded keys
     keys = split(key, num=len(devices) * 2)
