@@ -221,8 +221,7 @@ def apply(key, data, devices, model_params, training_params):
 
     params_f, train_losses = train(apply_fn, params_0, optimizer, 
                                     *data['train'], apply_keys,
-                                    alpha,
-                                    devices, epochs, batch_size)
+                                    alpha, epochs, batch_size)
 
     test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, 
                                             alpha, params_f, params_0, 
