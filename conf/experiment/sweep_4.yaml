@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 1.0e-05
+      eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -13,12 +13,129 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.01
-    repeat: 1
+      alpha: 0.001
+    repeat: 4
     parallelize: true
-    seed: 58508
+    seed: 966746
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.0027825594022071257
+    repeat: 4
+    parallelize: true
+    seed: 911559
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.007742636826811269
+    repeat: 4
+    parallelize: true
+    seed: 513926
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.021544346900318832
+    repeat: 4
+    parallelize: true
+    seed: 456933
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.05994842503189409
+    repeat: 4
+    parallelize: true
+    seed: 578888
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.1668100537200059
+    repeat: 4
+    parallelize: true
+    seed: 85922
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.46415888336127775
+    repeat: 4
+    parallelize: true
+    seed: 774754
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 1.2915496650148828
+    repeat: 4
+    parallelize: true
+    seed: 331967
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 3.593813663804626
+    repeat: 4
+    parallelize: true
+    seed: 15680
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 160
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 10.0
+    repeat: 4
+    parallelize: true
+    seed: 254967
   data_params:
-    P: 16384
+    P: 2048
     k: 0
     on_device: true
     random_subset: true

@@ -16,7 +16,7 @@ hyperparams:
       alpha: 0.001
     repeat: 4
     parallelize: true
-    seed: 46213
+    seed: 478289
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -29,7 +29,7 @@ hyperparams:
       alpha: 0.0027825594022071257
     repeat: 4
     parallelize: true
-    seed: 528281
+    seed: 741864
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -42,7 +42,7 @@ hyperparams:
       alpha: 0.007742636826811269
     repeat: 4
     parallelize: true
-    seed: 103418
+    seed: 363468
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -55,7 +55,7 @@ hyperparams:
       alpha: 0.021544346900318832
     repeat: 4
     parallelize: true
-    seed: 950329
+    seed: 771022
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -68,7 +68,7 @@ hyperparams:
       alpha: 0.05994842503189409
     repeat: 4
     parallelize: true
-    seed: 179713
+    seed: 194660
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -81,7 +81,7 @@ hyperparams:
       alpha: 0.1668100537200059
     repeat: 4
     parallelize: true
-    seed: 12889
+    seed: 881887
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -94,7 +94,7 @@ hyperparams:
       alpha: 0.46415888336127775
     repeat: 4
     parallelize: true
-    seed: 610203
+    seed: 991688
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -107,7 +107,7 @@ hyperparams:
       alpha: 1.2915496650148828
     repeat: 4
     parallelize: true
-    seed: 609500
+    seed: 130367
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -120,7 +120,7 @@ hyperparams:
       alpha: 3.593813663804626
     repeat: 4
     parallelize: true
-    seed: 333611
+    seed: 454058
   - training_params:
       eta_0: 0.001
       momentum: 0.9
@@ -133,12 +133,12 @@ hyperparams:
       alpha: 10.0
     repeat: 4
     parallelize: true
-    seed: 591268
+    seed: 905339
   data_params:
-    P: 256
+    P: 16384
     k: 0
     on_device: true
     random_subset: true
     data_seed: 419668
     root_dir: data-dir
-base_dir: /tmp/1
+base_dir: /tmp/7
