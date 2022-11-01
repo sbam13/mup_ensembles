@@ -22,21 +22,23 @@ from src.experiment.model.resnet import NTK_ResNet18
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
 
 
-def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> FrozenDict:
+def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTree:
     assert len(keys) == len(devices)
 
     CIFAR_SHAPE = (32, 32, 3)
     dummy_input = jnp.zeros((1,) + CIFAR_SHAPE) # added batch index
     replicated_dummy = device_put_replicated(dummy_input, devices)
+    
+    def get_params(key, dummy):
+        w_frozen = model.init(key, dummy)
+        return w_frozen.unfreeze()
 
-    # get shape data from model
-    return pmap(model.init)(keys, replicated_dummy)
+    return pmap(get_params)(keys, replicated_dummy)
 
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
         optimizer: optax.GradientTransformation, Xtr, ytr, keys: chex.PRNGKey, 
-        alpha: chex.Scalar,
-        devices: list[Device], epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+        alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
 
     # ----------------------------------------------------------------------
