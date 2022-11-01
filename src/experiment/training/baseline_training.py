@@ -69,8 +69,8 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
         p0 = state.p0
         params = state.model_state.params
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        return alpha_scaled_loss(centered_apply(params, Xtr), ytr)
+        # centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        return mse(apply_fn(params, Xtr), ytr)
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
@@ -81,10 +81,10 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         # p0_shape = tree_map(lambda z:z.shape, p0)
         
         # loss and gradient functions -------------------------------
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-                
+        # centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        
         def loss_fn(combined, Xin, yin):
-            return alpha_scaled_loss(centered_apply(combined, Xin), yin)
+            return mse(apply_fn(combined, Xin), yin)
         
         loss_grad_fn = value_and_grad(loss_fn, argnums=0)
         # -----------------------------------------------------------
@@ -145,8 +145,8 @@ def loss_and_deviation(apply_fn, alpha, params, params_0, X_test, y_test):
     # vloss = vmap(loss)
 
     def compute_ld(params, p0, X_test, y_test):
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        yhat = centered_apply(params, X_test)
+        # centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        yhat = apply_fn(params, X_test)
         deviation = yhat - y_test
         test_loss = mse(y_test, yhat)
         return test_loss, deviation

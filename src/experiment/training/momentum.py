@@ -84,8 +84,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         # loss and gradient functions -------------------------------
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
                 
-        def loss_fn(mut_p, immut_p, Xin, yin):
-            combined = {'params': mut_p, 'scaler': immut_p}
+        def loss_fn(combined, Xin, yin):
             return alpha_scaled_loss(centered_apply(combined, Xin), yin)
         
         loss_grad_fn = value_and_grad(loss_fn, argnums=0)
@@ -101,13 +100,11 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             # update params
             # param_shape = tree_map(lambda z: z.shape, params)
             # data_shape = tree_map(lambda z: z.shape, batch)
-            mutable_p, immutable_p = params['params'], params['scaler']
-            _, grads = loss_grad_fn(mutable_p, immutable_p, batch, labels)
-            updates, opt_state = optimizer.update(grads, opt_state, mutable_p)
+            _, grads = loss_grad_fn(params, batch, labels)
+            updates, opt_state = optimizer.update(grads, opt_state, params)
             
             # apply updates only to mutable params
-            mutable_p = optax.apply_updates(mutable_p, updates)
-            updated_params = params.copy({'params': mutable_p})
+            updated_params = optax.apply_updates(params, updates)
 
             return DistributedStepState(params=updated_params, opt_state=opt_state), None
     
@@ -126,7 +123,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     
     # ----------------------------------------------------------------------
 
-    init_opt_state = pmap(optimizer.init)(params0['params'])
+    init_opt_state = pmap(optimizer.init)(params0)
     init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, p0=params0, model_state=init_step_state)
 
@@ -188,6 +185,13 @@ def apply(key, data, devices, model_params, training_params):
     # print(tree_map(lambda z: z.shape, params_0))
 
     # compose optimizer
+    def zero_grads():
+        def init_fn(_): 
+            return ()
+        def update_fn(updates, state, params=None):
+            return tree_map(jnp.zeros_like, updates), ()
+        return optax.GradientTransformation(init_fn, update_fn)
+
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
     # weight_decay = training_params['weight_decay'] * batch_size
@@ -199,7 +203,8 @@ def apply(key, data, devices, model_params, training_params):
     # block_steps = LR_DROP_STAGE_SIZE // batch_size
     # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
     # optimizer = optax.sgd(lr_schedule, momentum)
-    optimizer = optax.adam(eta_0)
+    optimizer = optax.multi_transform({'adam': optax.adam(eta_0), 'zero': zero_grads()},
+                                        {'params': 'adam', 'scaler': 'zero'})
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
