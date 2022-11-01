@@ -66,7 +66,7 @@ def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
         for i in range(len(alpha_vals)):
             a = alpha_vals[i]
             seed = seed_matrix[i, j]
-            tp = TrainingParams(eta_0=lr, epochs=160)
+            tp = TrainingParams(eta_0=lr, epochs=100)
             mp = ModelParams(N, a)
             a_N_task = TaskConfig(model_params=mp, training_params=tp, repeat=es, seed=int(seed))
             tasks.task_list.append(a_N_task)
@@ -79,6 +79,4 @@ def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
 
 
 if __name__ == '__main__':
-    alphas = [0.001, 0.0027825594022071257, 0.007742636826811269, 0.021544346900318832, 0.05994842503189409, 0.1668100537200059, 0.46415888336127775, 1.2915496650148828, 3.593813663804626, 10.0]
-    P_vals = [2 ** i for i in range(7, 16)]
-    gen_sweeps([1e-3], alphas, [64], P_vals, 4, 4, 1, 4256, 29384)
+    gen_sweeps([1e-2, 1e-3, 1e-4], [1e-2], [64], [16384], 1, 1, 1, 4256, 29384)
