@@ -5,5 +5,5 @@
 
 from src.experiment.model.resnet import NTK_ResNet18
 from src.experiment.model.miniresnet import MiniResNet18
-# from src.experiment.model.myrtle_net import MyrtleNetwork
+from src.experiment.model.myrtle_net import MyrtleNetwork
 from src.experiment.model.vgg import VGG_12
