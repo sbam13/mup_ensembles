@@ -6,7 +6,7 @@ from jax.random import split
 from src.experiment.model.common import NTK_Conv
 
 from src.experiment.training.momentum import apply, initialize, loss_and_deviation
-from src.experiment.training.single_device_momentum import apply as sd_apply
+from src.experiment.training.sd_alpha_test import apply as sd_apply
 
 import flax.linen as nn
 
@@ -112,17 +112,14 @@ def test_apply():
 
 
 def test_apply_single():
-    key = jax.random.PRNGKey(12)
-    X = jax.random.normal(key, (8, 32, 32, 3)) 
-    y = jnp.arange(8.0).reshape((8, 1))
+    key = jax.random.PRNGKey(14432)
+    X = jax.random.normal(key, (256, 32, 32, 3)) 
+    y = jax.random.rademacher(key, (256, 1),dtype=jnp.float32)
     
-    X -= jnp.mean(X, axis=0)
-    g = lambda W: W / jnp.sum(W ** 2, dtype=jnp.float32)
-    v_g = jax.vmap(g)
-    X = v_g(X)
+    X /= jnp.linalg.norm(X, axis=0)
     data = {'train': (X, y), 'test': (X.copy(), y.copy())}
-    mp = {'N': 64, 'alpha': 0.5}
-    tp = {'eta_0': 1e-2, 'momentum': 0.9, 'batch_size': 4, 'epochs': 2}
+    mp = {'N': 64, 'alpha': 0.01}
+    tp = {'eta_0': 1e-2, 'momentum': 0.9, 'batch_size': 128, 'epochs': 2}
     return sd_apply(key, data, mp, tp)
 
 
