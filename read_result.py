@@ -28,7 +28,7 @@ def see_lr_losses(FOLDER=REMOTE_RESULTS_FOLDER):
                 res = pickle.load(f)
             lr = conf.training_params.eta_0
             alpha = conf.model_params.alpha
-            print('LR: ', lr, ' alpha: ', alpha)
+            print('rf', rf, 'LR: ', lr, ' alpha: ', alpha)
             print('Train Losses: ', res.train_losses[-5:], '\n')
 
 def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
