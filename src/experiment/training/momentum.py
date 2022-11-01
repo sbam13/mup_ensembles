@@ -37,7 +37,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
 
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
-        optimizer: optax.GradientTransformation, Xtr, ytr, keys: chex.PRNGKey, 
+        optimizer: optax.GradientTransformation, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
         alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
 
@@ -65,7 +65,6 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         p0: chex.ArrayTree # params at time 0
         model_state: DistributedStepState
     
-    alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
 
     @partial(pmap)
     def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
@@ -73,7 +72,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         p0 = state.p0
         params = state.model_state.params
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        return alpha_scaled_loss(centered_apply(params, Xtr), ytr)
+        return mse(centered_apply(params, Xtr), ytr)
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
@@ -85,7 +84,8 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         
         # loss and gradient functions -------------------------------
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-                
+        alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
+ 
         def loss_fn(combined, Xin, yin):
             return alpha_scaled_loss(centered_apply(combined, Xin), yin)
         
@@ -132,14 +132,16 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # training loop
     state = init_epoch_state
     losses = []
+    test_losses = []
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
-        if e % 10:
+        if e % 5 == 0:
             losses.append(compute_loss(state, Xtr, ytr))
+            test_losses.append(compute_loss(state, X_test, y_test))
     info('...exiting loop.')
     # note that return value is a pytree
-    return state.model_state.params, losses
+    return state.model_state.params, losses, test_losses
     
 
 def loss_and_deviation(apply_fn, alpha, params, params_0, X_test, y_test):
@@ -220,8 +222,8 @@ def apply(key, data, devices, model_params, training_params):
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
 
-    params_f, train_losses = train(apply_fn, params_0, optimizer, 
-                                    *data['train'], apply_keys,
+    params_f, train_losses, test_losses = train(apply_fn, params_0, optimizer, 
+                                    *data['train'], *data['test'], apply_keys,
                                     alpha, epochs, batch_size)
 
     test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, 
@@ -229,7 +231,7 @@ def apply(key, data, devices, model_params, training_params):
                                             *data['test'])
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
-                train_losses=train_losses, test_loss_f=test_loss_f, 
+                train_losses=train_losses, test_losses=test_losses, test_loss_f=test_loss_f, 
                 test_deviations_f=test_deviations_f)
     
     results = [None] * len(devices)
