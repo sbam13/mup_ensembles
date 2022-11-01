@@ -16,7 +16,7 @@ def read_result(fname):
 def see_lr_losses(FOLDER=REMOTE_RESULTS_FOLDER):
     results_files = os.listdir(FOLDER)
     for rf in results_files:
-        if rf.startswith('results-20221028'):
+        if not rf.startswith('results-20221101'):
             continue
         for task in range(2):
             task_folder = join(FOLDER, rf, f'task-{task}')
@@ -35,7 +35,7 @@ def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
     results_files = os.listdir(FOLDER)
     total_res = []
     for rf in results_files:
-        if rf.startswith('results-20221028'):
+        if not rf.startswith('results-20221101'):
             continue
         for task in range(2):
             task_folder = join(FOLDER, rf, f'task-{task}')
