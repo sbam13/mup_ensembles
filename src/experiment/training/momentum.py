@@ -16,7 +16,7 @@ from jaxlib.xla_extension import Device
 from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
-from src.experiment.model.resnet import ResNet18
+from src.experiment.model.resnet import NTK_ResNet18
 
 # MSE loss function
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
@@ -159,9 +159,9 @@ def apply(key, data, devices, model_params, training_params):
     N = model_params['N']
     
     # MODELS --------------------------------------------------------
-    # hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
+    hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
     # hidden_sizes = (N, 2 * N)
-    # model = NTK_ResNet18(hidden_sizes=hidden_sizes, stage_sizes=(2, 2), n_classes=1)
+    model = NTK_ResNet18(hidden_sizes=hidden_sizes, stage_sizes=(2, 2), n_classes=1)
     
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
@@ -169,7 +169,7 @@ def apply(key, data, devices, model_params, training_params):
 
     # model = MyrtleNetwork(N, depth=5)
 
-    model = ResNet18(n_classes=1)
+    # model = ResNet18(n_classes=1)
     # ---------------------------------------------------------------
 
 

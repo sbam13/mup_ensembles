@@ -28,8 +28,8 @@ class TaskType(Enum):
 
 
 class Callbacks(Enum):
-    # APPLY = apply
-    APPLY = baseline_apply
+    APPLY = apply
+    # APPLY = baseline_apply
     # SAVE = None
 
 
