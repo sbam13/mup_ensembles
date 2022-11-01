@@ -16,8 +16,7 @@ from jaxlib.xla_extension import Device
 from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
-
-from src.experiment.model import NTK_ResNet18, MiniResNet18, MyrtleNetwork, VGG_12
+from src.experiment.model.resnet import ResNet18
 
 # MSE loss function
 mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
@@ -60,10 +59,19 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
 
     @chex.dataclass
     class DistributedEpochState:
-        train_loss: chex.Scalar
         key: chex.PRNGKey
         p0: chex.ArrayTree # params at time 0
         model_state: DistributedStepState
+    
+    alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
+
+    @partial(pmap)
+    def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
+        """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
+        p0 = state.p0
+        params = state.model_state.params
+        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        return alpha_scaled_loss(centered_apply(params, Xtr), ytr)
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
@@ -75,9 +83,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         
         # loss and gradient functions -------------------------------
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        
-        alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
-        
+                
         def loss_fn(mut_p, immut_p, Xin, yin):
             combined = {'params': mut_p, 'scaler': immut_p}
             return alpha_scaled_loss(centered_apply(combined, Xin), yin)
@@ -116,26 +122,22 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         # SGD steps over batches in epoch
         model_state_e, _ = scan(step, state.model_state, (Xtr_sb, ytr_sb))
 
-        # compute train loss
-        epoch_params = model_state_e.params
-        epoch_train_loss = alpha_scaled_loss(centered_apply(epoch_params, Xtr), ytr)
-
-        return DistributedEpochState(train_loss=epoch_train_loss, key=other, p0=state.p0, model_state=model_state_e)
+        return DistributedEpochState(key=other, p0=state.p0, model_state=model_state_e)
     
     # ----------------------------------------------------------------------
-    losses0 = device_put_replicated(jnp.array(0.0), devices)
 
     init_opt_state = pmap(optimizer.init)(params0['params'])
     init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
-    init_epoch_state = DistributedEpochState(train_loss=losses0, key=keys, p0=params0, model_state=init_step_state)
+    init_epoch_state = DistributedEpochState(key=keys, p0=params0, model_state=init_step_state)
 
     # training loop
     state = init_epoch_state
-    losses = [None] * epochs
+    losses = []
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
-        losses[e] = state.train_loss
+        if e % 10:
+            losses.append(compute_loss(state, Xtr, ytr))
     info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses
@@ -166,9 +168,11 @@ def apply(key, data, devices, model_params, training_params):
     
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
-    model = VGG_12(N)
+    # model = VGG_12(N)
 
     # model = MyrtleNetwork(N, depth=5)
+
+    model = ResNet18(n_classes=1)
     # ---------------------------------------------------------------
 
 
@@ -187,15 +191,15 @@ def apply(key, data, devices, model_params, training_params):
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
     # weight_decay = training_params['weight_decay'] * batch_size
-    momentum = training_params['momentum']
+    # momentum = training_params['momentum']
     
-    POWER = -0.5
-    LR_DROP_STAGE_SIZE = 512
+    # POWER = -0.5
+    # LR_DROP_STAGE_SIZE = 512
     
-    block_steps = LR_DROP_STAGE_SIZE // batch_size
-    lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
-    optimizer = optax.sgd(lr_schedule, momentum)
-    # optimizer = optax.adam(eta_0)
+    # block_steps = LR_DROP_STAGE_SIZE // batch_size
+    # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
+    # optimizer = optax.sgd(lr_schedule, momentum)
+    optimizer = optax.adam(eta_0)
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function

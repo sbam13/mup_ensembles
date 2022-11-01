@@ -1,8 +1,8 @@
 SBATCH_TEMPLATE = '''#!/bin/bash
 
 #SBATCH --job-name={id}
-#SBATCH -e slurm-%j.err
-#SBATCH -o slurm-%j.out
+#SBATCH -e /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.err
+#SBATCH -o /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.out
 #SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=64g
