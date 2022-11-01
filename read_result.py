@@ -18,7 +18,7 @@ def see_lr_losses(FOLDER=REMOTE_RESULTS_FOLDER):
     for rf in results_files:
         if not rf.startswith('results-20221101'):
             continue
-        for task in range(2):
+        for task in range(1):
             task_folder = join(FOLDER, rf, f'task-{task}')
             try:
                 conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
@@ -37,7 +37,7 @@ def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
     for rf in results_files:
         if not rf.startswith('results-20221101'):
             continue
-        for task in range(2):
+        for task in range(1):
             task_folder = join(FOLDER, rf, f'task-{task}')
             try:
                 conf = OmegaConf.load(join(task_folder, 'task_config.pkl'))
