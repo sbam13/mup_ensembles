@@ -2,7 +2,7 @@ from neural_tangents import stax
 
 from functools import partial
 
-from jax.numpy import jnp
+import jax.numpy as jnp
 
 def MyrtleNetwork(N, depth, W_std=jnp.sqrt(2.0), b_std=0.0):
   layer_factor = {5: [2, 1, 1], 7: [2, 2, 2], 10: [3, 3, 3]}
