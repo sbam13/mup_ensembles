@@ -24,8 +24,7 @@ def load_cifar_data(data_dir:str, data_params: Mapping) -> dict[str, tuple]:
     X_test0 = test_data.data.astype(float32)
     y_test = array(test_data.targets, dtype=float32)
 
-    return {'train': (X0, y), 'test': (X_test0, y_test)}
-
+    return {'train': (X0, y.reshape((y.size, 1))), 'test': (X_test0, y_test.reshape(y_test.size, 1))}
 
 
 def take_subset(data: tuple, random_subset: bool, data_seed, P: int):
