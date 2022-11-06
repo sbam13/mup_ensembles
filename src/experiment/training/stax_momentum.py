@@ -32,7 +32,8 @@ def initialize(keys: chex.PRNGKey, init_fn, devices: list[Device]) -> chex.Array
     # replicated_dummy = device_put_replicated(dummy_input, devices)
     
     def get_params(key):
-        return init_fn(key, (1,) + CIFAR_SHAPE)
+        _, w = init_fn(key, (1,) + CIFAR_SHAPE)
+        return w
 
     return pmap(get_params)(keys)
 
@@ -65,15 +66,14 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         key: chex.PRNGKey
         model_state: DistributedStepState
     
-    shape, values = params0
-    centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn((shape, values), Xin))
+    centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(params0, Xin))
 
 
     @partial(pmap)
     def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
         """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
         params = state.model_state.params
-        return mse(centered_apply((shape, params), Xtr), ytr)
+        return mse(centered_apply(params, Xtr), ytr)
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
@@ -85,8 +85,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
  
         def loss_fn(params, Xin, yin):
-            combined = (shape, params)
-            return alpha_scaled_loss(centered_apply(combined, Xin), yin)
+            return alpha_scaled_loss(centered_apply(params, Xin), yin)
         
         loss_grad_fn = value_and_grad(loss_fn, argnums=0)
         # -----------------------------------------------------------
@@ -124,8 +123,8 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     
     # ----------------------------------------------------------------------
 
-    init_opt_state = pmap(optimizer.init)(values)
-    init_step_state = DistributedStepState(params=values, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
+    init_opt_state = pmap(optimizer.init)(params0)
+    init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
     # training loop
@@ -140,7 +139,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             test_losses.append(compute_loss(state, X_test, y_test))
     info('...exiting loop.')
     # note that return value is a pytree
-    return (shape, state.model_state.params), losses, test_losses
+    return state.model_state.params, losses, test_losses
     
 
 def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
