@@ -13,12 +13,38 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
+      alpha: 1.0
+    repeat: 1
+    parallelize: true
+    seed: 893880
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 100
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.1
+    repeat: 1
+    parallelize: true
+    seed: 473979
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 128
+      epochs: 100
+      full_batch_gradient: false
+    model_params:
+      'N': 64
       alpha: 0.01
     repeat: 1
     parallelize: true
-    seed: 58508
+    seed: 746538
   data_params:
-    P: 16384
+    P: 8192
     k: 0
     on_device: true
     random_subset: true

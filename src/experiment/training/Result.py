@@ -7,4 +7,5 @@ class Result:
     train_losses: chex.ArrayTree
     test_losses: chex.ArrayTree
     test_loss_f: chex.Scalar
-    test_deviations_f: chex.ArrayDevice
+    test_yhat_f: chex.ArrayTree
+    test_y: chex.ArrayTree

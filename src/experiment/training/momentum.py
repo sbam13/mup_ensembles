@@ -16,10 +16,12 @@ from jaxlib.xla_extension import Device
 from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
-from src.experiment.model.resnet import NTK_ResNet18
+# from src.experiment.model.resnet import NTK_ResNet18
+from src.experiment.model.vgg import VGG_12
 
 # MSE loss function
-mse = lambda y, yhat: jnp.mean((y - yhat) ** 2)
+def mse(y, yhat):
+    return jnp.mean((y - yhat) ** 2)
 
 
 def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTree:
@@ -144,17 +146,16 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     return state.model_state.params, losses, test_losses
     
 
-def loss_and_deviation(apply_fn, alpha, params, params_0, X_test, y_test):
-    """Returns test loss and the deviation (y_hat - y_true)."""
+def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
+    """Returns test loss and the predictions yhat."""
     # vapply_fn = vmap(apply_fn)
     # vloss = vmap(loss)
 
     def compute_ld(params, p0, X_test, y_test):
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
         yhat = centered_apply(params, X_test)
-        deviation = yhat - y_test
         test_loss = mse(y_test, yhat)
-        return test_loss, deviation
+        return test_loss, yhat
     
     return pmap(compute_ld)(params, params_0, X_test, y_test)
 
@@ -165,11 +166,11 @@ def apply(key, data, devices, model_params, training_params):
     # MODELS --------------------------------------------------------
     hidden_sizes = (N, 2 * N, 4 * N, 8 * N)
     # hidden_sizes = (N, 2 * N)
-    model = NTK_ResNet18(hidden_sizes=hidden_sizes, stage_sizes=(2, 2), n_classes=1)
+    # model = NTK_ResNet18(hidden_sizes=hidden_sizes, stage_sizes=(2, 2), n_classes=1)
     
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
-    # model = VGG_12(N)
+    model = VGG_12(N)
 
     # model = MyrtleNetwork(N, depth=5)
 
@@ -226,13 +227,13 @@ def apply(key, data, devices, model_params, training_params):
                                     *data['train'], *data['test'], apply_keys,
                                     alpha, epochs, batch_size)
 
-    test_loss_f, test_deviations_f = loss_and_deviation(apply_fn, 
+    test_loss_f, test_yhat_f = loss_and_yhat(apply_fn, 
                                             alpha, params_f, params_0, 
                                             *data['test'])
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
                 train_losses=train_losses, test_losses=test_losses, test_loss_f=test_loss_f, 
-                test_deviations_f=test_deviations_f)
+                test_yhat_f=test_yhat_f, test_y=data['test'][1])
     
     results = [None] * len(devices)
     for d in range(len(devices)):
