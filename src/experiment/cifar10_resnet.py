@@ -9,8 +9,9 @@ from jax.random import PRNGKey
 from jax.lax import cond
 
 from src.experiment.dataset.cifar10 import load_cifar_data
-from src.experiment.training.momentum import apply
-from src.experiment.training.baseline_training import apply as baseline_apply
+# from src.experiment.training.momentum import apply
+from src.experiment.training.stax_momentum import apply as stax_apply
+# from src.experiment.training.baseline_training import apply as baseline_apply
 
 from src.run.PreprocessDevice import PreprocessDevice as PD
 import src.run.constants as constants
@@ -28,7 +29,7 @@ class TaskType(Enum):
 
 
 class Callbacks(Enum):
-    APPLY = apply
+    APPLY = stax_apply
     # APPLY = baseline_apply
     # SAVE = None
 
