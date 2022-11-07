@@ -194,12 +194,12 @@ def apply(key, data, devices, model_params, training_params):
     # print(tree_map(lambda z: z.shape, params_0))
 
     # compose optimizer
-    # def zero_grads():
-    #     def init_fn(_): 
-    #         return ()
-    #     def update_fn(updates, state, params=None):
-    #         return tree_map(jnp.zeros_like, updates), ()
-    #     return optax.GradientTransformation(init_fn, update_fn)
+    def zero_grads():
+        def init_fn(_): 
+            return ()
+        def update_fn(updates, state, params=None):
+            return tree_map(jnp.zeros_like, updates), ()
+        return optax.GradientTransformation(init_fn, update_fn)
 
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
