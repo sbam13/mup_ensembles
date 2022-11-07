@@ -43,16 +43,20 @@ class PreprocessDevice(PD):
         X_test0, y_test = data['test']
 
         # center using training mean
-        train_mean = jnp.mean(X0, axis=0)
-        X0 -= train_mean
-        X_test0 -= train_mean
+        # train_mean = jnp.mean(X0, axis=0)
+        # X0 -= train_mean
+        # X_test0 -= train_mean
 
-        # scale down by stddev
-        def g(z):
-            return jnp.sqrt(jnp.sum(z ** 2))
-        train_scale = jnp.mean(jit(vmap(g))(X0))
-        X0 /= train_scale
-        X_test0 /= train_scale
+        # # scale down by stddev
+        # def g(z):
+        #     return jnp.sqrt(jnp.sum(z ** 2))
+        # train_scale = jnp.mean(jit(vmap(g))(X0))
+        # X0 /= train_scale
+        # X_test0 /= train_scale
+
+        SCALING_CONSTANT = 255.0
+        X0 /= SCALING_CONSTANT
+        X_test0 /= SCALING_CONSTANT
 
         # normalize
         # def normalize(W): 
