@@ -9,7 +9,7 @@ from jax.random import PRNGKey
 from jax.lax import cond
 
 from src.experiment.dataset.cifar10 import load_cifar_data
-from src.experiment.training.momentum import apply
+from src.experiment.training.jaxopt_momentum import apply
 # from src.experiment.training.stax_momentum import apply as stax_apply
 # from src.experiment.training.baseline_training import apply as baseline_apply
 
@@ -85,11 +85,11 @@ class PreprocessDevice(PD):
 
 
         # Classes [0 - 4] are 1, classes [5 - 9] are -1
-        # cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
-        cifar_loo = lambda labels: 2. * ((labels == 0).astype(jnp.float32)) - 1.
+        cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
+        # cifar_loo = lambda labels: 2. * ((labels == 0).astype(jnp.float32)) - 1.
 
-        # y, y_test = map(cifar2, (y, y_test))
-        y, y_test = map(cifar_loo, (y, y_test))
+        y, y_test = map(cifar2, (y, y_test))
+        # y, y_test = map(cifar_loo, (y, y_test))
 
         return dict(train=(X0, y), test=(X_test0, y_test))
 
