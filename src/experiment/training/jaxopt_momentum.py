@@ -148,7 +148,10 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             test_losses.append(compute_loss(state, X_test, y_test))
     info('...exiting loop.')
     # note that return value is a pytree
-    final_params = {'params': get_params(state.model_state.opt_state), 'scaler': immut}
+    mut = pmap(get_params)(state.model_state.opt_state)
+    immut = params0['scaler']
+
+    final_params = {'params': mut, 'scaler': immut}
     return final_params, losses, test_losses
     
 
