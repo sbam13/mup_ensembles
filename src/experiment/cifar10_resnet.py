@@ -9,7 +9,7 @@ from jax.random import PRNGKey
 from jax.lax import cond
 
 from src.experiment.dataset.cifar10 import load_cifar_data
-from src.experiment.training.momentum import apply
+from src.experiment.training.jaxopt_momentum import apply
 # from src.experiment.training.stax_momentum import apply as stax_apply
 # from src.experiment.training.baseline_training import apply as baseline_apply
 
@@ -43,23 +43,23 @@ class PreprocessDevice(PD):
         X_test0, y_test = data['test']
 
         # ---------------------------------------------------------------------
-        X0 = self._preprocess_im2gray(X0)
-        X_test0 = self._preprocess_im2gray(X_test0)
+        # X0 = self._preprocess_im2gray(X0)
+        # X_test0 = self._preprocess_im2gray(X_test0)
         # ---------------------------------------------------------------------
 
 
         # ---------------------------------------------------------------------
-        # # center using training mean
-        # train_mean = jnp.mean(X0, axis=0)
-        # X0 -= train_mean
-        # X_test0 -= train_mean
+        # center using training mean
+        train_mean = jnp.mean(X0, axis=0)
+        X0 -= train_mean
+        X_test0 -= train_mean
 
-        # # scale down by stddev
-        # def g(z):
-        #     return jnp.sqrt(jnp.sum(z ** 2))
-        # train_scale = jnp.mean(jit(vmap(g))(X0))
-        # X0 /= train_scale
-        # X_test0 /= train_scale
+        # scale down by stddev
+        def g(z):
+            return jnp.sqrt(jnp.sum(z ** 2))
+        train_scale = jnp.mean(jit(vmap(g))(X0))
+        X0 /= train_scale
+        X_test0 /= train_scale
         # ---------------------------------------------------------------------
 
         # ---------------------------------------------------------------------

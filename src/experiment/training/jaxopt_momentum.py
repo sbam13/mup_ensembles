@@ -5,13 +5,13 @@ from logging import info
 import chex
 import jax.numpy as jnp
 import math
-import optax
 
 import flax.linen as nn
 
 from jax import pmap, tree_map, value_and_grad
 from jax import device_put_replicated, device_put_sharded, device_get
 from jax.lax import scan
+from jax.example_libraries import optimizers
 
 from jax.random import permutation, split
 from jaxlib.xla_extension import Device
@@ -43,7 +43,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
 
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
-        optimizer: optax.GradientTransformation, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
+        optimizer: tuple, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
         alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
 
@@ -62,22 +62,32 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # distributed pytrees
     @chex.dataclass
     class DistributedStepState:
-        params: chex.ArrayTree
+        t: int = 0
         opt_state: chex.ArrayTree
 
     @chex.dataclass
     class DistributedEpochState:
         key: chex.PRNGKey
-        p0: chex.ArrayTree # params at time 0
         model_state: DistributedStepState
     
+    mut, immut = params0['params'], params0['scaler']
+    opt_init, opt_update, get_params = optimizer
+
+    centered_apply = lambda vars, Xin: alpha * (apply_fn({'params': vars, 'scaler': immut}, Xin) - apply_fn(params0, Xin))
+
+    # loss and gradient functions -------------------------------
+    alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
+
+    def loss_fn(combined, Xin, yin):
+        return alpha_scaled_loss(centered_apply(combined, Xin), yin)
+
+    loss_grad_fn = value_and_grad(loss_fn, argnums=0)
+    # -----------------------------------------------------------
 
     @partial(pmap)
     def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
         """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
-        p0 = state.p0
-        params = state.model_state.params
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
+        params = get_params(state.model_state.opt_state)
         return mse(centered_apply(params, Xtr), ytr)
 
     @partial(pmap)
@@ -85,23 +95,11 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
                 Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice) -> DistributedEpochState:
         """Runs one epoch."""
         key, other = split(state.key, 2)
-        p0 = state.p0
-        # p0_shape = tree_map(lambda z:z.shape, p0)
-        
-        # loss and gradient functions -------------------------------
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        alpha_scaled_loss = lambda y, yhat: (1.0 / alpha ** 2) * mse(y, yhat)
- 
-        def loss_fn(combined, Xin, yin):
-            return alpha_scaled_loss(centered_apply(combined, Xin), yin)
-        
-        loss_grad_fn = value_and_grad(loss_fn, argnums=0)
-        # -----------------------------------------------------------
 
         def step(step_state: DistributedStepState, data: tuple) -> DistributedStepState:
             """Takes an SGD step."""
-        # unpack
-            params = step_state.params
+            # unpack
+            params = get_params(step_state.opt_state)
             opt_state = step_state.opt_state
             batch, labels = data
 
@@ -109,12 +107,9 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             # param_shape = tree_map(lambda z: z.shape, params)
             # data_shape = tree_map(lambda z: z.shape, batch)
             _, grads = loss_grad_fn(params, batch, labels)
-            updates, opt_state = optimizer.update(grads, opt_state, params)
+            opt_state = opt_update(step_state.t, grads, step_state.opt_state)
             
-            # apply updates only to mutable params
-            updated_params = optax.apply_updates(params, updates)
-
-            return DistributedStepState(params=updated_params, opt_state=opt_state), None
+            return DistributedStepState(t = step_state.t + 1, opt_state=opt_state), None
     
 
         # shuffle
@@ -127,13 +122,13 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         # SGD steps over batches in epoch
         model_state_e, _ = scan(step, state.model_state, (Xtr_sb, ytr_sb))
 
-        return DistributedEpochState(key=other, p0=state.p0, model_state=model_state_e)
+        return DistributedEpochState(key=other, model_state=model_state_e)
     
     # ----------------------------------------------------------------------
 
-    init_opt_state = pmap(optimizer.init)(params0)
-    init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
-    init_epoch_state = DistributedEpochState(key=keys, p0=params0, model_state=init_step_state)
+    init_opt_state = pmap(opt_init)(mut)
+    init_step_state = DistributedStepState(t = 0, params=mut, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
+    init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
     # training loop
     state = init_epoch_state
@@ -147,7 +142,8 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
             test_losses.append(compute_loss(state, X_test, y_test))
     info('...exiting loop.')
     # note that return value is a pytree
-    return state.model_state.params, losses, test_losses
+    final_params = {'params': get_params(state.model_state.opt_state), 'scaler': immut}
+    return final_params, losses, test_losses
     
 
 def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
@@ -195,13 +191,6 @@ def apply(key, data, devices, model_params, training_params):
     # print(tree_map(lambda z: z.shape, params_0))
 
     # compose optimizer
-    def zero_grads():
-        def init_fn(_): 
-            return ()
-        def update_fn(updates, state, params=None):
-            return tree_map(jnp.zeros_like, updates), ()
-        return optax.GradientTransformation(init_fn, update_fn)
-
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
     # weight_decay = training_params['weight_decay'] * batch_size
@@ -213,10 +202,8 @@ def apply(key, data, devices, model_params, training_params):
     # block_steps = LR_DROP_STAGE_SIZE // batch_size
     # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
     # optimizer = optax.sgd(lr_schedule, momentum)
-    adam = optax.adam(eta_0)
+    adam = optimizers.adam(eta_0)
     # sgd_fixed_eta = optax.sgd(eta_0, momentum)
-    optimizer = optax.multi_transform({'adam': adam, 'zero': zero_grads()},
-                                        {'params': 'adam', 'scaler': 'zero'})
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
@@ -229,7 +216,7 @@ def apply(key, data, devices, model_params, training_params):
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
 
-    params_f, train_losses, test_losses = train(apply_fn, params_0, optimizer, 
+    params_f, train_losses, test_losses = train(apply_fn, params_0, adam, 
                                     *data['train'], *data['test'], apply_keys,
                                     alpha, epochs, batch_size)
 
