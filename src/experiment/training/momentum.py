@@ -31,7 +31,8 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
     assert len(keys) == len(devices)
 
     CIFAR_SHAPE = (32, 32, 3)
-    dummy_input = jnp.zeros((1,) + CIFAR_SHAPE) # added batch index
+    GRAY_CIFAR_SHAPE = (32, 32, 1) # change if going back to rgb
+    dummy_input = jnp.zeros((1,) + GRAY_CIFAR_SHAPE) # added batch index
     replicated_dummy = device_put_replicated(dummy_input, devices)
     
     def get_params(key, dummy):
