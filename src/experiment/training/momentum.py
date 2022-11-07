@@ -232,13 +232,16 @@ def apply(key, data, devices, model_params, training_params):
                                     *data['train'], *data['test'], apply_keys,
                                     alpha, epochs, batch_size)
 
+    train_loss_f, train_yhat_f = loss_and_yhat(apply_fn, alpha, params_f, params_0, *data['train'])
+    
     test_loss_f, test_yhat_f = loss_and_yhat(apply_fn, 
                                             alpha, params_f, params_0, 
                                             *data['test'])
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
                 train_losses=train_losses, test_losses=test_losses, test_loss_f=test_loss_f, 
-                test_yhat_f=test_yhat_f, test_y=data['test'][1])
+                test_yhat_f=test_yhat_f, test_y=data['test'][1],
+                train_loss_f=train_loss_f, train_yhat_f=train_yhat_f)
     
     results = [None] * len(devices)
     for d in range(len(devices)):
