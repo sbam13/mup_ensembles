@@ -4,9 +4,11 @@ from logging import info
 
 import chex
 import jax.numpy as jnp
+import math
 import optax
 
-from flax.core.frozen_dict import FrozenDict
+import flax.linen as nn
+
 from jax import pmap, tree_map, value_and_grad
 from jax import device_put_replicated, device_put_sharded, device_get
 from jax.lax import scan
@@ -172,7 +174,7 @@ def apply(key, data, devices, model_params, training_params):
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
     # model = VGG_12(N)
-    model = WideResnet(1, N // 16, 1)
+    model = WideResnet(1, N // 16, 1, kernel_init=nn.initializers.normal(math.sqrt(2.0)))
 
     # model = MyrtleNetwork(N, depth=5)
 

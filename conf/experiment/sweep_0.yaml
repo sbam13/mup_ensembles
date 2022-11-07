@@ -12,8 +12,8 @@ hyperparams:
       epochs: 100
       full_batch_gradient: false
     model_params:
-      'N': 32
-      alpha: 0.001
+      'N': 64
+      alpha: 10.0
     repeat: 1
     parallelize: true
     seed: 932827
@@ -25,8 +25,8 @@ hyperparams:
       epochs: 100
       full_batch_gradient: false
     model_params:
-      'N': 32
-      alpha: 0.0001
+      'N': 64
+      alpha: 1.0
     repeat: 1
     parallelize: true
     seed: 351392
@@ -38,8 +38,8 @@ hyperparams:
       epochs: 100
       full_batch_gradient: false
     model_params:
-      'N': 32
-      alpha: 1.0e-05
+      'N': 64
+      alpha: 0.1
     repeat: 1
     parallelize: true
     seed: 828257
@@ -51,8 +51,8 @@ hyperparams:
       epochs: 100
       full_batch_gradient: false
     model_params:
-      'N': 32
-      alpha: 1.0e-06
+      'N': 64
+      alpha: 0.01
     repeat: 1
     parallelize: true
     seed: 511029
@@ -64,8 +64,8 @@ hyperparams:
       epochs: 100
       full_batch_gradient: false
     model_params:
-      'N': 32
-      alpha: 1.0e-07
+      'N': 64
+      alpha: 0.001
     repeat: 1
     parallelize: true
     seed: 743454
