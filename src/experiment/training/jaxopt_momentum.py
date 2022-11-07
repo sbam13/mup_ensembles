@@ -44,7 +44,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
         optimizer: tuple, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
-        alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+        alpha: chex.Scalar, devices, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
 
     # ----------------------------------------------------------------------
@@ -62,7 +62,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # distributed pytrees
     @chex.dataclass
     class DistributedStepState:
-        t: int
+        t: chex.ArraySharded
         opt_state: chex.ArrayTree
 
     @chex.dataclass
@@ -125,9 +125,10 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         return DistributedEpochState(key=other, model_state=model_state_e)
     
     # ----------------------------------------------------------------------
+    init_time = device_put_replicated(jnp.array(0, dtype=jnp.int32), devices)
 
     init_opt_state = pmap(opt_init)(mut)
-    init_step_state = DistributedStepState(t = 0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
+    init_step_state = DistributedStepState(t = init_time, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
     # training loop
@@ -218,7 +219,7 @@ def apply(key, data, devices, model_params, training_params):
 
     params_f, train_losses, test_losses = train(apply_fn, params_0, adam, 
                                     *data['train'], *data['test'], apply_keys,
-                                    alpha, epochs, batch_size)
+                                    alpha, devices, epochs, batch_size)
 
     train_loss_f, train_yhat_f = loss_and_yhat(apply_fn, alpha, params_f, params_0, *data['train'])
     
