@@ -42,22 +42,33 @@ class PreprocessDevice(PD):
         X0, y = data['train']
         X_test0, y_test = data['test']
 
-        # center using training mean
-        train_mean = jnp.mean(X0, axis=0)
-        X0 -= train_mean
-        X_test0 -= train_mean
+        # ---------------------------------------------------------------------
+        X0 = self._preprocess_im2gray(X0)
+        X_test0 = self._preprocess_im2gray(X_test0)
+        # ---------------------------------------------------------------------
 
-        # scale down by stddev
-        def g(z):
-            return jnp.sqrt(jnp.sum(z ** 2))
-        train_scale = jnp.mean(jit(vmap(g))(X0))
-        X0 /= train_scale
-        X_test0 /= train_scale
 
+        # ---------------------------------------------------------------------
+        # # center using training mean
+        # train_mean = jnp.mean(X0, axis=0)
+        # X0 -= train_mean
+        # X_test0 -= train_mean
+
+        # # scale down by stddev
+        # def g(z):
+        #     return jnp.sqrt(jnp.sum(z ** 2))
+        # train_scale = jnp.mean(jit(vmap(g))(X0))
+        # X0 /= train_scale
+        # X_test0 /= train_scale
+        # ---------------------------------------------------------------------
+
+        # ---------------------------------------------------------------------
         # SCALING_CONSTANT = 255.0
         # X0 /= SCALING_CONSTANT
         # X_test0 /= SCALING_CONSTANT
+        # ---------------------------------------------------------------------
 
+        # ---------------------------------------------------------------------
         # normalize
         # def normalize(W): 
         #     # TODO: make this jax.lax.cond
@@ -70,6 +81,8 @@ class PreprocessDevice(PD):
 
         # X0 = v_normalize(X0)
         # X_test0 = v_normalize(X_test0)
+        # ---------------------------------------------------------------------
+
 
         # Classes [0 - 4] are 1, classes [5 - 9] are -1
         cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
@@ -77,6 +90,16 @@ class PreprocessDevice(PD):
         y, y_test = map(cifar2, (y, y_test))
 
         return dict(train=(X0, y), test=(X_test0, y_test))
+
+    def _preprocess_im2gray(self, X):
+        SCALING_CONSTANT = 255.0
+        
+        def rgb2gray(rgb):
+            r, g, b = rgb[:,:,:,0], rgb[:,:,:,1], rgb[:,:,:,2]
+            return 0.2989 * r + 0.5870 * g + 0.1140 * b
+        
+        return jnp.expand_dims(rgb2gray(X) / SCALING_CONSTANT, axis=3)
+
 
     def _copy_data_into_temp(self, SOURCE_FOLDER = constants.CIFAR_FOLDER):
         DEST_FOLDER = os.path.join(self.data_dir, "cifar-10-batches-py")
