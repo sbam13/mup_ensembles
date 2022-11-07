@@ -62,7 +62,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # distributed pytrees
     @chex.dataclass
     class DistributedStepState:
-        t: int = 0
+        t: int
         opt_state: chex.ArrayTree
 
     @chex.dataclass
