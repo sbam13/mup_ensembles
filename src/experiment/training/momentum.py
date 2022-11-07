@@ -17,7 +17,8 @@ from src.experiment.training.Result import Result
 from src.experiment.training.root_schedule import blocked_polynomial_schedule
 
 # from src.experiment.model.resnet import NTK_ResNet18
-from src.experiment.model.vgg import VGG_12
+# from src.experiment.model.vgg import VGG_12
+from src.experiment.model.miniresnet import WideResnet
 
 # MSE loss function
 def mse(y, yhat):
@@ -170,7 +171,8 @@ def apply(key, data, devices, model_params, training_params):
     
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
-    model = VGG_12(N)
+    # model = VGG_12(N)
+    model = WideResnet(4, N // 16, 1)
 
     # model = MyrtleNetwork(N, depth=5)
 
@@ -202,16 +204,16 @@ def apply(key, data, devices, model_params, training_params):
     # weight_decay = training_params['weight_decay'] * batch_size
     momentum = training_params['momentum']
     
-    POWER = -0.5
-    LR_DROP_STAGE_SIZE = 512
+    # POWER = -0.5
+    # LR_DROP_STAGE_SIZE = 512
     
-    block_steps = LR_DROP_STAGE_SIZE // batch_size
-    lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
-    optimizer = optax.sgd(lr_schedule, momentum)
-    # adam = optax.adam(eta_0)
+    # block_steps = LR_DROP_STAGE_SIZE // batch_size
+    # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
+    # optimizer = optax.sgd(lr_schedule, momentum)
+    adam = optax.adam(eta_0)
     # sgd_fixed_eta = optax.sgd(eta_0, momentum)
-    optimizer = optax.multi_transform({'sgd': optimizer, 'zero': zero_grads()},
-                                        {'params': 'sgd', 'scaler': 'zero'})
+    optimizer = optax.multi_transform({'adam': optimizer, 'zero': zero_grads()},
+                                        {'params': 'adam', 'scaler': 'zero'})
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
