@@ -73,11 +73,12 @@ class WideResnet(nn.Module):
   conv_cls: ModuleDef = common.NTK_Conv
   dense_cls: ModuleDef = common.NTK_Dense
   group_cls: ModuleDef = WideResnetGroup
-  kernel_init: Callable = nn.initializers.normal(1.0)
+  conv_init: Callable = nn.initializers.normal(1.0)
+  dense_init: Callable = nn.initializers.normal(1.0)
 
   @nn.compact
   def __call__(self, x):
-    conv_cls = partial(self.conv_cls, kernel_init=self.kernel_init)
+    conv_cls = partial(self.conv_cls, kernel_init=self.conv_init)
     
     x = conv_cls(16, (3, 3), padding='SAME')(x)
     x = self.group_cls(self.block_size, 16 * self.k, conv_cls)(x)
@@ -85,4 +86,4 @@ class WideResnet(nn.Module):
     x = self.group_cls(self.block_size, 64 * self.k, conv_cls, (2, 2))(x)
     x = nn.avg_pool(x, (8, 8))
     x = x.reshape((x.shape[0], -1))
-    return self.dense_cls(self.num_classes, kernel_init=self.kernel_init)(x)
+    return self.dense_cls(self.num_classes, kernel_init=self.dense_init)(x)
