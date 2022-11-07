@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -13,12 +13,12 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 32
-      alpha: 100.0
+      alpha: 0.001
     repeat: 1
     parallelize: true
-    seed: 268243
+    seed: 932827
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -26,12 +26,12 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 32
-      alpha: 10.0
+      alpha: 0.0001
     repeat: 1
     parallelize: true
-    seed: 287875
+    seed: 351392
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -39,12 +39,12 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 32
-      alpha: 1.0
+      alpha: 1.0e-05
     repeat: 1
     parallelize: true
-    seed: 133206
+    seed: 828257
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -52,12 +52,12 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 32
-      alpha: 0.1
+      alpha: 1.0e-06
     repeat: 1
     parallelize: true
-    seed: 335214
+    seed: 511029
   - training_params:
-      eta_0: 0.001
+      eta_0: 1.0e-05
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -65,10 +65,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 32
-      alpha: 0.01
+      alpha: 1.0e-07
     repeat: 1
     parallelize: true
-    seed: 112194
+    seed: 743454
   data_params:
     P: 8192
     k: 0
