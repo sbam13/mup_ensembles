@@ -172,7 +172,7 @@ def apply(key, data, devices, model_params, training_params):
     # model = MiniResNet18(num_classes=1, num_filters=N)
     
     # model = VGG_12(N)
-    model = WideResnet(4, N // 16, 1)
+    model = WideResnet(1, N // 16, 1)
 
     # model = MyrtleNetwork(N, depth=5)
 
