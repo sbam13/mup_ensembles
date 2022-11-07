@@ -17,20 +17,21 @@ def load_cifar_data(data_dir:str, data_params: Mapping) -> dict[str, tuple]:
 
     X0 = training_data.data.astype(float32)
     y = array(training_data.targets, dtype=float32)
-    
+
     X_test0 = test_data.data.astype(float32)
     y_test = array(test_data.targets, dtype=float32)
 
-    rs, ds, P = data_params['random_subset'], data_params['data_seed'], data_params['P']
+    # rs, ds, P = data_params['random_subset'], data_params['data_seed'], data_params['P']
     # (X0, y) = take_subset((X0, y), rs, ds, P)
-    key = jr.PRNGKey(ds)
-    X0, y = take_01_subset(X0, y)
-    shuffle_mask = jr.permutation(key, y.size, axis=0)
-    X0, y = X0[shuffle_mask][:P], y[shuffle_mask][:P]
+    
+    # -------------------------------------------------------------------------    
+    # key = jr.PRNGKey(ds)
+    # X0, y = take_01_subset(X0, y)
+    # shuffle_mask = jr.permutation(key, y.size, axis=0)
+    # X0, y = X0[shuffle_mask][:P], y[shuffle_mask][:P]
 
-    X_test0, y_test = take_01_subset(X_test0, y_test)
+    # X_test0, y_test = take_01_subset(X_test0, y_test)
     # -------------------------------------------------------------------------
-
 
     return {'train': (X0, y.reshape((y.size, 1))), 'test': (X_test0, y_test.reshape(y_test.size, 1))}
 

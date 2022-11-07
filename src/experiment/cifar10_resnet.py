@@ -2,13 +2,14 @@ import os
 import shutil
 from enum import Enum
 from typing import Mapping
+import chex
 
 import jax.numpy as jnp
 from jax import vmap, jit
-from jax.random import PRNGKey
+from jax.random import PRNGKey, permutation
 from jax.lax import cond
 
-from src.experiment.dataset.cifar10 import load_cifar_data
+from src.experiment.dataset.cifar10 import load_cifar_data, take_subset
 from src.experiment.training.momentum import apply
 # from src.experiment.training.stax_momentum import apply as stax_apply
 # from src.experiment.training.baseline_training import apply as baseline_apply
@@ -37,6 +38,52 @@ class Callbacks(Enum):
 # TODO: add to validate_task the check that batch_size divides train and test size
 
 class PreprocessDevice(PD):
+    def _four_class_separation(self, data: dict):
+        def not_in_split(y: chex.Array):
+            return jnp.any(jnp.isclose(y, jnp.array((2.0, 6.0))))
+        
+        def map_label(y: chex.Array):
+            positive = jnp.array((0.0, 1.0, 8.0, 9.0))
+            # negative = jnp.array((3.0, 4.0, 5.0, 7.0)) # for reference only
+            return cond(jnp.any(jnp.isclose(y, positive)), 
+                lambda: jnp.ones_like(y), 
+                lambda: -1.0 * jnp.ones_like(y))
+
+        vmap_label = vmap(map_label)
+
+        # get data
+        (X, y), (X_test, y_test) = data['train'], data['test']
+       
+        # discard data points not in split
+        rm, rm_test = map(vmap(not_in_split), (y, y_test))
+        X, y = jnp.delete(X, rm, axis=0), jnp.delete(y, rm, axis=0)
+        X_test, y_test = jnp.delete(X_test, rm_test, axis=0), jnp.delete(y_test, rm_test, axis=0)
+
+        # convert labels
+        y, y_test = map(vmap_label, (y, y_test))
+
+        # shuffle and select P data points
+        data_params = self.data_params
+        rs, ds, P = data_params['random_subset'], data_params['data_seed'], data_params['P']
+        X, y = take_subset((X, y), rs, ds, P)
+
+        # center using training mean
+        train_mean = jnp.mean(X, axis=0)
+        X -= train_mean
+        X_test -= train_mean
+
+        # scale down by stddev
+        def g(z):
+            return jnp.sqrt(jnp.sum(z ** 2))
+        train_scale = jnp.mean(vmap(g)(X))
+        X /= train_scale
+        X_test /= train_scale
+
+        return dict(train=(X, y), test=(X_test, y_test))
+
+        
+
+
     def _whiten_data(self, data: dict):
         """Center and normalize so that x-values are on the sphere."""
         X0, y = data['train']
@@ -112,7 +159,8 @@ class PreprocessDevice(PD):
         # self._copy_data_into_temp()
 
         data = load_cifar_data(self.data_dir, data_params)
-        whitened_data = self._whiten_data(data)
+        # whitened_data = self._whiten_data(data)
+        whitened_data = self._four_class_separation(data)
         
         return freeze(whitened_data)
 
