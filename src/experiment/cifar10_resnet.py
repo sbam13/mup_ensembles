@@ -47,25 +47,32 @@ class PreprocessDevice(PD):
         X0 -= train_mean
         X_test0 -= train_mean
 
+        # scale down by stddev
+        def g(z):
+            return jnp.sqrt(jnp.sum(z ** 2))
+        train_scale = jnp.mean(jit(vmap(g))(X0))
+        X0 /= train_scale
+        X_test0 /= train_scale
+
         # normalize
-        def normalize(W): 
-            # TODO: make this jax.lax.cond
-            im_norm = jnp.sum(W ** 2, dtype=jnp.float32)
-            div_by_scalar = lambda z, c: z / c 
-            id = lambda z, c: z
-            return cond(jnp.isclose(im_norm, 0.0), id, div_by_scalar, W, jnp.sqrt(im_norm))
+        # def normalize(W): 
+        #     # TODO: make this jax.lax.cond
+        #     im_norm = jnp.sum(W ** 2, dtype=jnp.float32)
+        #     div_by_scalar = lambda z, c: z / c 
+        #     id = lambda z, c: z
+        #     return cond(jnp.isclose(im_norm, 0.0), id, div_by_scalar, W, jnp.sqrt(im_norm))
 
-        v_normalize = jit(vmap(normalize))
+        # v_normalize = jit(vmap(normalize))
 
-        X = v_normalize(X0)
-        X_test = v_normalize(X_test0)
+        # X0 = v_normalize(X0)
+        # X_test0 = v_normalize(X_test0)
 
         # Classes [0 - 4] are 1, classes [5 - 9] are -1
         cifar2 = lambda labels: 2. * ((labels < 5).astype(jnp.float32)) - 1.
 
         y, y_test = map(cifar2, (y, y_test))
 
-        return dict(train=(X, y), test=(X_test, y_test))
+        return dict(train=(X0, y), test=(X_test0, y_test))
 
     def _copy_data_into_temp(self, SOURCE_FOLDER = constants.CIFAR_FOLDER):
         DEST_FOLDER = os.path.join(self.data_dir, "cifar-10-batches-py")
