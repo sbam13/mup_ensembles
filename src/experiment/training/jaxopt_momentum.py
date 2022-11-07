@@ -127,7 +127,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     # ----------------------------------------------------------------------
 
     init_opt_state = pmap(opt_init)(mut)
-    init_step_state = DistributedStepState(t = 0, params=mut, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
+    init_step_state = DistributedStepState(t = 0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, model_state=init_step_state)
 
     # training loop
