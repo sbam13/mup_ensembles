@@ -9,5 +9,3 @@ class Result:
     test_loss_f: chex.Scalar
     test_yhat_f: chex.ArrayTree
     test_y: chex.ArrayTree
-    train_loss_f: chex.ArrayTree
-    train_yhat_f: chex.ArrayTree
