@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.0001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -18,7 +18,7 @@ hyperparams:
     parallelize: true
     seed: 893880
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.0001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -31,7 +31,7 @@ hyperparams:
     parallelize: true
     seed: 791618
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.0001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -44,7 +44,7 @@ hyperparams:
     parallelize: true
     seed: 746538
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.0001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
@@ -63,4 +63,4 @@ hyperparams:
     random_subset: true
     data_seed: 785748
     root_dir: data-dir
-base_dir: /tmp/0
+base_dir: /tmp/2

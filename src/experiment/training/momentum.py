@@ -205,7 +205,7 @@ def apply(key, data, devices, model_params, training_params):
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
     # weight_decay = training_params['weight_decay'] * batch_size
-    # momentum = training_params['momentum']
+    momentum = training_params['momentum']
     
     # POWER = -0.5
     # LR_DROP_STAGE_SIZE = 512
@@ -213,10 +213,10 @@ def apply(key, data, devices, model_params, training_params):
     # block_steps = LR_DROP_STAGE_SIZE // batch_size
     # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
     # optimizer = optax.sgd(lr_schedule, momentum)
-    adam = optax.adam(eta_0)
-    # sgd_fixed_eta = optax.sgd(eta_0, momentum)
-    optimizer = optax.multi_transform({'adam': adam, 'zero': zero_grads()},
-                                        {'params': 'adam', 'scaler': 'zero'})
+    # adam = optax.adam(eta_0)
+    sgd_fixed_eta = optax.sgd(eta_0, momentum)
+    optimizer = optax.multi_transform({'sgd': sgd_fixed_eta, 'zero': zero_grads()},
+                                        {'params': 'sgd', 'scaler': 'zero'})
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
