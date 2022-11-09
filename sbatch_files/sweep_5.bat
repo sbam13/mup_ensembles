@@ -6,9 +6,10 @@
 #SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=64g
-#SBATCH --partition=pehlevan_gpu,gpu,gpu_requeue
+#SBATCH --partition=pehlevan_gpu,gpu
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:4
+#SBATCH --requeue
 
 module load cuda/11.7.1-fasrc01 cudnn/8.5.0.96_cuda11-fasrc01 Anaconda3/2020.11
 
