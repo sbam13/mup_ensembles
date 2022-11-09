@@ -6,58 +6,19 @@ hyperparams:
   task_list:
   - training_params:
       eta_0: 1.0e-05
-      momentum: 0.2
+      momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 200
       full_batch_gradient: false
     model_params:
-      'N': 128
-      alpha: 1.0
-    repeat: 1
-    parallelize: true
-    seed: 883532
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.2
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 128
-      alpha: 0.1
-    repeat: 1
-    parallelize: true
-    seed: 929976
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.2
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 128
+      'N': 32
       alpha: 0.01
     repeat: 1
     parallelize: true
-    seed: 807740
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.2
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 128
-      alpha: 0.001
-    repeat: 1
-    parallelize: true
-    seed: 653402
+    seed: 817364
   data_params:
-    P: 8192
+    P: 1024
     k: 0
     on_device: true
     random_subset: true

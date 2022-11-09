@@ -9,7 +9,7 @@ import optax
 
 import flax.linen as nn
 
-from jax import pmap, tree_map, value_and_grad
+from jax import jit, vmap, pmap, tree_map, value_and_grad
 from jax import device_put_replicated, device_put_sharded, device_get
 from jax.lax import scan
 
@@ -72,13 +72,23 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         model_state: DistributedStepState
     
 
-    @partial(pmap)
-    def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
+    def compute_loss(state: DistributedEpochState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice, batch_size):
         """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
         p0 = state.p0
         params = state.model_state.params
+       
+        X_batched = Xtr.reshape((batch_size, -1, *Xtr.shape[1:]))
+        y_batched = ytr.reshape(((batch_size, -1, *ytr.shape[1:])))
+        
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        return mse(centered_apply(params, Xtr), ytr)
+        
+        compute_batch_loss = lambda x, y: mse(centered_apply(params, x), y)
+        vmap_batch_loss = vmap(compute_batch_loss)
+        
+        return jnp.mean(vmap_batch_loss(X_batched, y_batched))
+
+    compute_train_loss = pmap(partial(compute_loss, batch_size=512))
+    compute_test_loss = pmap(partial(compute_loss, batch_size=500))
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
@@ -143,8 +153,8 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     for e in range(epochs):
         state = update(state, Xtr, ytr)
         if e % 5 == 0:
-            losses.append(compute_loss(state, Xtr, ytr))
-            test_losses.append(compute_loss(state, X_test, y_test))
+            losses.append(compute_train_loss(state, Xtr, ytr))
+            test_losses.append(compute_test_loss(state, X_test, y_test))
     info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses, test_losses
@@ -154,12 +164,22 @@ def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
     """Returns test loss and the predictions yhat."""
     # vapply_fn = vmap(apply_fn)
     # vloss = vmap(loss)
+    BATCH_SIZE = 500
 
-    def compute_ld(params, p0, X_test, y_test):
-        centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
-        yhat = centered_apply(params, X_test)
-        test_loss = mse(y_test, yhat)
-        return test_loss, yhat
+    def compute_ld(params, p0, X, y):
+        X_batched = X.reshape((BATCH_SIZE, -1, *X.shape[1:]))
+        y_batched = y.reshape(((BATCH_SIZE, -1, *y.shape[1:])))
+        
+        centered_apply = lambda Xin: alpha * (apply_fn(params, Xin) - apply_fn(p0, Xin))
+        
+        def ly(a, b):
+            bhat = centered_apply(a)
+            return mse(b, bhat), bhat
+
+        vmap_ly = vmap(ly)
+        
+        batch_losses, batch_yhats = vmap_ly(X_batched, y_batched)
+        return jnp.mean(batch_losses), batch_yhats.reshape((-1, *y.shape[1:]))
     
     return pmap(compute_ld)(params, params_0, X_test, y_test)
 
