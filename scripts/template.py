@@ -6,7 +6,7 @@ SBATCH_TEMPLATE = '''#!/bin/bash
 #SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --mem=64g
-#SBATCH --partition=pehlevan_gpu
+#SBATCH --partition=pehlevan_gpu,gpu,gpu_requeue
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:{ngpus}
 
