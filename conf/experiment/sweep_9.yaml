@@ -16,7 +16,7 @@ hyperparams:
       alpha: 0.001
     repeat: 20
     parallelize: true
-    seed: 605228
+    seed: 670633
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -29,7 +29,7 @@ hyperparams:
       alpha: 0.0031622776601683794
     repeat: 20
     parallelize: true
-    seed: 538703
+    seed: 78929
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -42,7 +42,7 @@ hyperparams:
       alpha: 0.01
     repeat: 20
     parallelize: true
-    seed: 84393
+    seed: 146733
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -55,7 +55,7 @@ hyperparams:
       alpha: 0.03162277660168379
     repeat: 20
     parallelize: true
-    seed: 248414
+    seed: 438039
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -68,7 +68,7 @@ hyperparams:
       alpha: 0.1
     repeat: 20
     parallelize: true
-    seed: 463927
+    seed: 565592
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -81,7 +81,7 @@ hyperparams:
       alpha: 0.31622776601683794
     repeat: 20
     parallelize: true
-    seed: 502393
+    seed: 94750
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -94,12 +94,12 @@ hyperparams:
       alpha: 1.0
     repeat: 20
     parallelize: true
-    seed: 594757
+    seed: 895233
   data_params:
-    P: 512
+    P: 2048
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 279994
+    data_seed: 434528
     root_dir: data-dir
-base_dir: /tmp/0
+base_dir: /tmp/9

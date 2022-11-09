@@ -94,6 +94,7 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    # alphas = np.logspace(-1, 3, 7)
-    alphas = [1e0, 1e-1, 1e-2, 1e-3]
-    gen_sweeps([0.2, 0.4, 0.6, 0.8], [1e-5], alphas, [128], [8192], 1, 1, 1, 2243, 3245)
+    alphas = list(map(float, np.logspace(-3, 0, 7)))
+    P_vals = [2 ** i for i in range(9, 16)]
+    # alphas = [1e0, 1e-1, 1e-2, 1e-3]
+    gen_sweeps([.9], [1e-5], alphas, [64], P_vals, 20, 4, 5, 435, 2980)

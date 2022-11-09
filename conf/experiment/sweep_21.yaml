@@ -100,6 +100,6 @@ hyperparams:
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 279994
+    data_seed: 241681
     root_dir: data-dir
-base_dir: /tmp/0
+base_dir: /tmp/21
