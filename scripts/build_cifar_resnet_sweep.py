@@ -4,6 +4,7 @@ from os.path import join, dirname
 import os, shutil
 
 import jax.random as jr
+import numpy as np
 
 from template import SBATCH_TEMPLATE
 
@@ -67,7 +68,7 @@ def _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
         for i in range(len(alpha_vals)):
             a = alpha_vals[i]
             seed = seed_matrix[i, j]
-            tp = TrainingParams(eta_0=lr, epochs=100, batch_size=128, momentum=mo)
+            tp = TrainingParams(eta_0=lr, epochs=200, batch_size=128, momentum=mo)
             mp = ModelParams(N, a)
             a_N_task = TaskConfig(model_params=mp, training_params=tp, repeat=es, seed=int(seed))
             tasks.task_list.append(a_N_task)
@@ -93,4 +94,6 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    gen_sweeps([0.2, 0.4, 0.6, 0.8, 0.9], [1e-5], [1e0, 1e-1, 1e-2, 1e-3], [64], [8192], 1, 1, 1, 4256, 33342)
+    # alphas = np.logspace(-1, 3, 7)
+    alphas = [1e0, 1e-1, 1e-2, 1e-3]
+    gen_sweeps([0.2, 0.4, 0.6, 0.8], [1e-5], alphas, [128], [8192], 1, 1, 1, 2243, 3245)
