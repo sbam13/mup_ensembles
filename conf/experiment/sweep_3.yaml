@@ -6,7 +6,7 @@ hyperparams:
   task_list:
   - training_params:
       eta_0: 1.0e-05
-      momentum: 0.9
+      momentum: 0.8
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -19,7 +19,7 @@ hyperparams:
     seed: 893880
   - training_params:
       eta_0: 1.0e-05
-      momentum: 0.9
+      momentum: 0.8
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -32,7 +32,7 @@ hyperparams:
     seed: 791618
   - training_params:
       eta_0: 1.0e-05
-      momentum: 0.9
+      momentum: 0.8
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -45,7 +45,7 @@ hyperparams:
     seed: 746538
   - training_params:
       eta_0: 1.0e-05
-      momentum: 0.9
+      momentum: 0.8
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100

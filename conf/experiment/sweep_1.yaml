@@ -5,8 +5,8 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.001
-      momentum: 0.9
+      eta_0: 1.0e-05
+      momentum: 0.4
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -18,8 +18,8 @@ hyperparams:
     parallelize: true
     seed: 893880
   - training_params:
-      eta_0: 0.001
-      momentum: 0.9
+      eta_0: 1.0e-05
+      momentum: 0.4
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -31,8 +31,8 @@ hyperparams:
     parallelize: true
     seed: 791618
   - training_params:
-      eta_0: 0.001
-      momentum: 0.9
+      eta_0: 1.0e-05
+      momentum: 0.4
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100
@@ -44,8 +44,8 @@ hyperparams:
     parallelize: true
     seed: 746538
   - training_params:
-      eta_0: 0.001
-      momentum: 0.9
+      eta_0: 1.0e-05
+      momentum: 0.4
       weight_decay: 1.0e-05
       batch_size: 128
       epochs: 100

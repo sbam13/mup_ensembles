@@ -1,7 +1,7 @@
-from itertools import product
 from numpy import int32, asarray
 from omegaconf import OmegaConf
 from os.path import join, dirname
+import os, shutil
 
 import jax.random as jr
 
@@ -17,7 +17,7 @@ BASE_DIR = '/tmp/{id}'
 CONFIG_NAME = 'sweep_{id}.yaml'
 SBATCH_NAME = 'sweep_{id}.bat'
 
-def gen_sweeps(lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int, ngpus: int,
+def gen_sweeps(mo_vals, lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int, ngpus: int,
             bagging_size: int, seed: int, data_seed: int):
     k = jr.PRNGKey(seed)
     lP, la, lN = len(P_vals), len(alpha_vals), len(N_vals)
@@ -32,32 +32,33 @@ def gen_sweeps(lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int, ngpus: i
     sbatch_save_folder = join(curr_dir, SBATCH_DIR)
 
     id = 0
-    for lr in lr_vals:
-        for bag in range(len(data_seeds)):
-            s_D = data_seeds[bag]
-            for i in range(len(P_vals)):
-                P = P_vals[i]
-                seed_matrix = seeds[i]
-                config_str = _gen_sweep(id, lr, alpha_vals, N_vals, P, 
-                            es=ensemble_size, seed_matrix=seed_matrix, data_seed=s_D)
-                config_fname = CONFIG_NAME.format(id=id)
-                config_rel_loc = join(config_save_folder, config_fname)
+    for mo in mo_vals:
+        for lr in lr_vals:
+            for bag in range(len(data_seeds)):
+                s_D = data_seeds[bag]
+                for i in range(len(P_vals)):
+                    P = P_vals[i]
+                    seed_matrix = seeds[i]
+                    config_str = _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, 
+                                es=ensemble_size, seed_matrix=seed_matrix, data_seed=s_D)
+                    config_fname = CONFIG_NAME.format(id=id)
+                    config_rel_loc = join(config_save_folder, config_fname)
 
-                sbatch_str = SBATCH_TEMPLATE.format(id=id, ngpus=ngpus)
+                    sbatch_str = SBATCH_TEMPLATE.format(id=id, ngpus=ngpus)
 
-                sbatch_fname = SBATCH_NAME.format(id=id)
-                sbatch_rel_loc = join(sbatch_save_folder, sbatch_fname)
-
-
-
-                with open(config_rel_loc, mode='x') as fi:
-                    fi.write(config_str) # TODO: add file exists exception handler + clean up
-                with open(sbatch_rel_loc, mode='x') as fi:
-                    fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
-                id += 1
+                    sbatch_fname = SBATCH_NAME.format(id=id)
+                    sbatch_rel_loc = join(sbatch_save_folder, sbatch_fname)
 
 
-def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
+
+                    with open(config_rel_loc, mode='x') as fi:
+                        fi.write(config_str) # TODO: add file exists exception handler + clean up
+                    with open(sbatch_rel_loc, mode='x') as fi:
+                        fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
+                    id += 1
+
+
+def _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
     dp = DataParams(P=P, data_seed=int(data_seed))
     tasks = TaskListConfig(data_params=dp)
     
@@ -66,7 +67,7 @@ def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
         for i in range(len(alpha_vals)):
             a = alpha_vals[i]
             seed = seed_matrix[i, j]
-            tp = TrainingParams(eta_0=lr, epochs=100, batch_size=128)
+            tp = TrainingParams(eta_0=lr, epochs=100, batch_size=128, momentum=mo)
             mp = ModelParams(N, a)
             a_N_task = TaskConfig(model_params=mp, training_params=tp, repeat=es, seed=int(seed))
             tasks.task_list.append(a_N_task)
@@ -78,5 +79,18 @@ def _gen_sweep(id, lr, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
     return '# @package _global_\n' + str_conf
 
 
+def clear_folder(folder):
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+
 if __name__ == '__main__':
-    gen_sweeps([1e-2, 1e-3, 1e-4, 1e-5], [1e0, 1e-1, 1e-2, 1e-3], [64], [8192], 1, 1, 1, 4256, 33342)
+    clear_folder(CONFIG_DIR)
+    clear_folder(SBATCH_DIR)
+    gen_sweeps([0.2, 0.4, 0.6, 0.8, 0.9], [1e-5], [1e0, 1e-1, 1e-2, 1e-3], [64], [8192], 1, 1, 1, 4256, 33342)
