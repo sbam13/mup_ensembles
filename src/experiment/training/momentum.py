@@ -88,9 +88,10 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         return jnp.mean(lax_map(compute_batch_loss, (X_batched, y_batched)))
 
     MAX_LOSS_COMPUTE_BATCH_SIZE = 8192
+    MAX_TEST_LOSS_COMPUTE_BATCH_SIZE = 8000
     loss_compute_batch_size = min(MAX_LOSS_COMPUTE_BATCH_SIZE, P)
     compute_train_loss = pmap(partial(compute_loss, batch_size=loss_compute_batch_size))
-    compute_test_loss = pmap(partial(compute_loss, batch_size=10000))
+    compute_test_loss = pmap(partial(compute_loss, batch_size=MAX_TEST_LOSS_COMPUTE_BATCH_SIZE))
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
