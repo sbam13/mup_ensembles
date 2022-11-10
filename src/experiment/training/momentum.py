@@ -11,7 +11,7 @@ import flax.linen as nn
 
 from jax import jit, vmap, pmap, tree_map, value_and_grad
 from jax import device_put_replicated, device_put_sharded, device_get
-from jax.lax import scan
+from jax.lax import scan, map as lax_map
 
 from jax.random import permutation, split
 from jaxlib.xla_extension import Device
@@ -45,7 +45,8 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
         optimizer: optax.GradientTransformation, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
         alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
-    num_batches = Xtr.shape[1] // batch_size # 0 is sharding dimension
+    P = Xtr.shape[1]
+    num_batches = P // batch_size # 0 is sharding dimension
 
     # ----------------------------------------------------------------------
     # @chex.dataclass
@@ -76,19 +77,20 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         """Computes the loss of the model at state `state` with data `(Xtr, ytr)`."""
         p0 = state.p0
         params = state.model_state.params
-       
+        
         X_batched = Xtr.reshape((batch_size, -1, *Xtr.shape[1:]))
         y_batched = ytr.reshape(((batch_size, -1, *ytr.shape[1:])))
         
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
         
-        compute_batch_loss = lambda x, y: mse(centered_apply(params, x), y)
-        vmap_batch_loss = vmap(compute_batch_loss)
+        compute_batch_loss = lambda z: mse(centered_apply(params, z[0]), z[1])
         
-        return jnp.mean(vmap_batch_loss(X_batched, y_batched))
+        return jnp.mean(lax_map(compute_batch_loss, (X_batched, y_batched)))
 
-    compute_train_loss = pmap(partial(compute_loss, batch_size=512))
-    compute_test_loss = pmap(partial(compute_loss, batch_size=500))
+    MAX_LOSS_COMPUTE_BATCH_SIZE = 8192
+    loss_compute_batch_size = min(MAX_LOSS_COMPUTE_BATCH_SIZE, P)
+    compute_train_loss = pmap(partial(compute_loss, batch_size=loss_compute_batch_size))
+    compute_test_loss = pmap(partial(compute_loss, batch_size=10000))
 
     @partial(pmap)
     def update(state: DistributedEpochState, 
