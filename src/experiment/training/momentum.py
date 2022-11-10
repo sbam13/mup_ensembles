@@ -79,7 +79,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         params = state.model_state.params
         
         X_batched = Xtr.reshape((-1, batch_size, *Xtr.shape[1:]))
-        y_batched = ytr.reshape(((-1, batch_size, *ytr.shape[1:])))
+        y_batched = ytr.reshape((-1, batch_size, *ytr.shape[1:]))
         
         centered_apply = lambda vars, Xin: alpha * (apply_fn(vars, Xin) - apply_fn(p0, Xin))
         
@@ -171,7 +171,7 @@ def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
 
     def compute_ld(params, p0, X, y):
         X_batched = X.reshape((-1, BATCH_SIZE, *X.shape[1:]))
-        y_batched = y.reshape(((-1, BATCH_SIZE, *y.shape[1:])))
+        y_batched = y.reshape((-1, BATCH_SIZE, *y.shape[1:]))
         
         centered_apply = lambda Xin: alpha * (apply_fn(params, Xin) - apply_fn(p0, Xin))
         
