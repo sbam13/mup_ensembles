@@ -73,15 +73,22 @@ def average_and_ensemble_loss(trials):
     num_trials = len(trials)
     y_true = trials[0].test_y
     
+    nan_indices = {i for i in range(len(trials)) if np.isnan(trials[i].test_loss_f)}
+    
     ensemble_preds = np.zeros_like(trials[0].test_yhat_f)
-    for trial in trials:
-        ensemble_preds += trial.test_yhat_f
-    ensemble_preds /= num_trials
+    j = 0
+    for i in range(len(trials)):
+        if i in nan_indices:
+            continue
+        ensemble_preds += trials[i].test_yhat_f
+        j += 1
+    if j != 0:
+        ensemble_preds /= j
 
     assert ensemble_preds.shape == y_true.shape
     
-    trial_losses = [trial.test_loss_f for trial in trials]
-    return np.mean(trial_losses), mse(ensemble_preds, y_true)
+    trial_losses = [trials[i].test_loss_f for i in range(num_trials) if i not in nan_indices]
+    return np.mean(trial_losses), mse(ensemble_preds, y_true), len(nan_indices)
 
 def get_overall_losses(results_list):
     nested = defaultdict(lambda: defaultdict(dict))
@@ -100,6 +107,7 @@ def get_overall_losses(results_list):
 def get_losses(results_list):
     nested_al = defaultdict(lambda: defaultdict(dict))
     nested_el = defaultdict(lambda: defaultdict(dict))
+    nested_num_nan = defaultdict(lambda: defaultdict(dict))
     for res in results_list:
         data_seed = res['data_config']['data_seed']
         P = res['data_config']['P']
@@ -108,7 +116,8 @@ def get_losses(results_list):
             task = res[f'task-{i}']
             task_config = task[0]
             alpha = task_config['model_params']['alpha']
-            al, el = average_and_ensemble_loss(task[1])
+            al, el, num_nan = average_and_ensemble_loss(task[1])
             nested_al[data_seed][P][alpha] = al
             nested_el[data_seed][P][alpha] = el
-    return nested_al, nested_el
+            nested_num_nan[data_seed][P][alpha] = num_nan
+    return nested_al, nested_el, nested_num_nan
