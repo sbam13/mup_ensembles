@@ -95,6 +95,6 @@ if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
     alphas = list(map(float, np.logspace(-3, 2, 11)))[-4:]
-    P_vals = [2 ** i for i in range(9, 15)]
+    P_vals = [2 ** i for i in range(15, 16)]
     # alphas = [1e0, 1e-1, 1e-2, 1e-3]
     gen_sweeps([.9], [1e-5], alphas, [64], P_vals, 20, 4, 5, 435, 2980)
