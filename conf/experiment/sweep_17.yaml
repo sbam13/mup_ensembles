@@ -13,10 +13,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.001
+      alpha: 3.1622776601683795
     repeat: 20
     parallelize: true
-    seed: 459048
+    seed: 439933
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -26,10 +26,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.0031622776601683794
+      alpha: 10.0
     repeat: 20
     parallelize: true
-    seed: 38878
+    seed: 15353
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -39,10 +39,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.01
+      alpha: 31.622776601683793
     repeat: 20
     parallelize: true
-    seed: 792390
+    seed: 528850
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -52,51 +52,12 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.03162277660168379
+      alpha: 100.0
     repeat: 20
     parallelize: true
-    seed: 933426
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.1
-    repeat: 20
-    parallelize: true
-    seed: 489775
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.31622776601683794
-    repeat: 20
-    parallelize: true
-    seed: 661288
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 1.0
-    repeat: 20
-    parallelize: true
-    seed: 327447
+    seed: 418056
   data_params:
-    P: 4096
+    P: 16384
     k: 0
     on_device: true
     random_subset: true

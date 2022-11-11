@@ -13,10 +13,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.001
+      alpha: 3.1622776601683795
     repeat: 20
     parallelize: true
-    seed: 862266
+    seed: 113740
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -26,10 +26,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.0031622776601683794
+      alpha: 10.0
     repeat: 20
     parallelize: true
-    seed: 267219
+    seed: 833646
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -39,10 +39,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.01
+      alpha: 31.622776601683793
     repeat: 20
     parallelize: true
-    seed: 931792
+    seed: 972296
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -52,49 +52,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.03162277660168379
+      alpha: 100.0
     repeat: 20
     parallelize: true
-    seed: 631963
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.1
-    repeat: 20
-    parallelize: true
-    seed: 17890
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.31622776601683794
-    repeat: 20
-    parallelize: true
-    seed: 122178
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 1.0
-    repeat: 20
-    parallelize: true
-    seed: 860303
+    seed: 181869
   data_params:
     P: 1024
     k: 0

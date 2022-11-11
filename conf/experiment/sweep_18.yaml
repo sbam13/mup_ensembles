@@ -13,10 +13,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.001
+      alpha: 3.1622776601683795
     repeat: 20
     parallelize: true
-    seed: 967527
+    seed: 838524
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -26,10 +26,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.0031622776601683794
+      alpha: 10.0
     repeat: 20
     parallelize: true
-    seed: 867840
+    seed: 682443
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -39,10 +39,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.01
+      alpha: 31.622776601683793
     repeat: 20
     parallelize: true
-    seed: 640567
+    seed: 489055
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -52,54 +52,15 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 0.03162277660168379
+      alpha: 100.0
     repeat: 20
     parallelize: true
-    seed: 905009
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.1
-    repeat: 20
-    parallelize: true
-    seed: 241785
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.31622776601683794
-    repeat: 20
-    parallelize: true
-    seed: 123697
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 1.0
-    repeat: 20
-    parallelize: true
-    seed: 997086
+    seed: 923129
   data_params:
-    P: 8192
+    P: 512
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 134639
+    data_seed: 241681
     root_dir: data-dir
 base_dir: /tmp/18
