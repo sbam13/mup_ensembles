@@ -59,6 +59,10 @@ def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
         total_res.append(res)
     return total_res
 
+
+def overall_losses(trials):
+    return [trial.test_loss_f for trial in trials]
+
 def average_and_ensemble_loss(trials):
     def mse(y, yhat):
         return np.mean((y - yhat)**2)
@@ -79,6 +83,19 @@ def average_and_ensemble_loss(trials):
     trial_losses = [trial.test_loss_f for trial in trials]
     return np.mean(trial_losses), mse(ensemble_preds, y_true)
 
+def get_overall_losses(results_list):
+    nested = defaultdict(lambda: defaultdict(dict))
+    for res in results_list:
+        data_seed = res['data_config']['data_seed']
+        P = res['data_config']['P']
+        num_tasks = len(res) - 1
+        for i in range(num_tasks):
+            task = res[f'task-{i}']
+            task_config = task[0]
+            alpha = task_config['model_params']['alpha']
+            ol = overall_losses(task[1])
+            nested[data_seed][P][alpha] = ol
+    return nested
 
 def get_losses(results_list):
     nested_al = defaultdict(lambda: defaultdict(dict))
