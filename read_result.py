@@ -59,7 +59,7 @@ def see_lr_deviations(FOLDER=REMOTE_RESULTS_FOLDER):
         total_res.append(res)
     return total_res
 
-def average_and_ensemble_loss(trials: list[Result]):
+def average_and_ensemble_loss(trials):
     def mse(y, yhat):
         return np.mean((y - yhat)**2)
     
