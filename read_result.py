@@ -104,7 +104,7 @@ def get_overall_losses(results_list):
             nested[data_seed][P][alpha] = ol
     return nested
 
-def get_losses(results_list):
+def get_losses(results_list, P_first=True):
     nested_al = defaultdict(lambda: defaultdict(dict))
     nested_el = defaultdict(lambda: defaultdict(dict))
     nested_num_nan = defaultdict(lambda: defaultdict(dict))
@@ -117,7 +117,12 @@ def get_losses(results_list):
             task_config = task[0]
             alpha = task_config['model_params']['alpha']
             al, el, num_nan = average_and_ensemble_loss(task[1])
-            nested_al[data_seed][P][alpha] = al
-            nested_el[data_seed][P][alpha] = el
-            nested_num_nan[data_seed][P][alpha] = num_nan
+            if P_first:
+                nested_al[data_seed][P][alpha] = al
+                nested_el[data_seed][P][alpha] = el
+                nested_num_nan[data_seed][P][alpha] = num_nan
+            else:
+                nested_al[data_seed][alpha][P] = al
+                nested_el[data_seed][alpha][P] = el
+                nested_num_nan[data_seed][alpha][P] = num_nan
     return nested_al, nested_el, nested_num_nan
