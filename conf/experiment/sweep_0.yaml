@@ -13,10 +13,10 @@ hyperparams:
       full_batch_gradient: false
     model_params:
       'N': 64
-      alpha: 3.1622776601683795
-    repeat: 20
+      alpha: 1.0
+    repeat: 4
     parallelize: true
-    seed: 619465
+    seed: 523555
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -27,22 +27,9 @@ hyperparams:
     model_params:
       'N': 64
       alpha: 10.0
-    repeat: 20
+    repeat: 4
     parallelize: true
-    seed: 766231
-  - training_params:
-      eta_0: 1.0e-05
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 128
-      epochs: 200
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 31.622776601683793
-    repeat: 20
-    parallelize: true
-    seed: 105594
+    seed: 419463
   - training_params:
       eta_0: 1.0e-05
       momentum: 0.9
@@ -53,14 +40,14 @@ hyperparams:
     model_params:
       'N': 64
       alpha: 100.0
-    repeat: 20
+    repeat: 4
     parallelize: true
-    seed: 626914
+    seed: 727492
   data_params:
-    P: 32768
+    P: 1024
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 279994
+    data_seed: 578676
     root_dir: data-dir
 base_dir: /tmp/0
