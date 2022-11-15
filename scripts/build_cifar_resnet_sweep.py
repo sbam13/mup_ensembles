@@ -68,7 +68,7 @@ def _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
         for i in range(len(alpha_vals)):
             a = alpha_vals[i]
             seed = seed_matrix[i, j]
-            tp = TrainingParams(eta_0=lr, epochs=200, batch_size=128, momentum=mo)
+            tp = TrainingParams(eta_0=lr, epochs=1000, batch_size=128, momentum=mo)
             mp = ModelParams(N, a)
             a_N_task = TaskConfig(model_params=mp, training_params=tp, repeat=es, seed=int(seed))
             tasks.task_list.append(a_N_task)
