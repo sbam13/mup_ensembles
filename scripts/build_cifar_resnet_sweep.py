@@ -7,7 +7,7 @@ import jax.random as jr
 import numpy as np
 
 from template import SBATCH_TEMPLATE
-
+from math import ceil
 from config_structs import Config, DataParams, ModelParams, TrainingParams, Setting, TaskConfig, TaskListConfig
 
 CONFIG_DIR = '../conf/experiment'
@@ -62,13 +62,15 @@ def gen_sweeps(mo_vals, lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int,
 def _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
     dp = DataParams(P=P, data_seed=int(data_seed))
     tasks = TaskListConfig(data_params=dp)
-    
+    STEPS = 2000
+    BATCH_SIZE = 256
+    num_epochs = ceil(STEPS / (P / BATCH_SIZE))
     for j in range(len(N_vals)):
         N = N_vals[j]
         for i in range(len(alpha_vals)):
             a = alpha_vals[i]
             seed = seed_matrix[i, j]
-            tp = TrainingParams(eta_0=lr, epochs=200, batch_size=128, momentum=mo)
+            tp = TrainingParams(eta_0=lr, epochs=num_epochs, batch_size=BATCH_SIZE, momentum=mo)
             mp = ModelParams(N, a)
             a_N_task = TaskConfig(model_params=mp, training_params=tp, repeat=es, seed=int(seed))
             tasks.task_list.append(a_N_task)
@@ -94,9 +96,9 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    # alphas = list(map(float, np.logspace(-3, 2, 11)))[-4:]
-    # P_vals = [2 ** i for i in range(15, 16)]
-    alphas = [1, 10, 100]
-    P_vals = [1024]
+    alphas = list(map(float, np.logspace(-3, 0, 10)))
+    P_vals = [2 ** i for i in range(9, 16)]
+    # alphas = [1, 10, 100]
+    # P_vals = [1024]
     # alphas = [1e0, 1e-1, 1e-2, 1e-3]
-    gen_sweeps([.9], [1e-5], alphas, [64], P_vals, 4, 4, 1, 238, 942)
+    gen_sweeps([.9], [1e-3], alphas, [64], P_vals, 20, 4, 5, 838, 642)

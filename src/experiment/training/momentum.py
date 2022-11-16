@@ -148,6 +148,12 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, p0=params0, model_state=init_step_state)
 
+    # loss cutoff
+    # THRESHOLD = 1e-2
+    # @partial(pmap)
+    # def cutoff(z):
+    #     return z < THRESHOLD
+
     # training loop
     state = init_epoch_state
     losses = []
@@ -156,8 +162,14 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     for e in range(epochs):
         state = update(state, Xtr, ytr)
         if e % 5 == 0:
-            losses.append(compute_train_loss(state, Xtr, ytr))
+            train_losses = compute_train_loss(state, Xtr, ytr)
+            
+            losses.append(train_losses)
             test_losses.append(compute_test_loss(state, X_test, y_test))
+            
+            # is_done = jnp.all(cutoff(train_losses))
+            # if is_done:
+            #     break
     info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses, test_losses
@@ -228,7 +240,7 @@ def apply(key, data, devices, model_params, training_params):
     batch_size = training_params['batch_size']
     eta_0 = training_params['eta_0']
     # weight_decay = training_params['weight_decay'] * batch_size
-    momentum = training_params['momentum']
+    # momentum = training_params['momentum']
     
     # POWER = -0.5
     # LR_DROP_STAGE_SIZE = 512
@@ -236,10 +248,10 @@ def apply(key, data, devices, model_params, training_params):
     # block_steps = LR_DROP_STAGE_SIZE // batch_size
     # lr_schedule = blocked_polynomial_schedule(eta_0, POWER, block_steps=block_steps)
     # optimizer = optax.sgd(lr_schedule, momentum)
-    # adam = optax.adam(eta_0)
-    sgd_fixed_eta = optax.sgd(eta_0, momentum)
-    optimizer = optax.multi_transform({'sgd': sgd_fixed_eta, 'zero': zero_grads()},
-                                        {'params': 'sgd', 'scaler': 'zero'})
+    adam = optax.adam(eta_0)
+    # sgd_fixed_eta = optax.sgd(eta_0, momentum)
+    optimizer = optax.multi_transform({'adam': adam, 'zero': zero_grads()},
+                                        {'params': 'adam', 'scaler': 'zero'})
     # optimizer = optax.adamw(eta_0, weight_decay=weight_decay)
 
     # compose apply function
