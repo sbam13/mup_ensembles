@@ -90,6 +90,36 @@ def average_and_ensemble_loss(trials):
     trial_losses = [trials[i].test_loss_f for i in range(num_trials) if i not in nan_indices]
     return np.mean(trial_losses), mse(ensemble_preds, y_true), len(nan_indices)
 
+def average_and_ensemble_accuracy(trials):
+    def accuracy(y, yhat):
+        return np.sum(y * yhat > 0) / y.size
+    
+    if len(trials) == 0:
+        raise ValueError
+
+    num_trials = len(trials)
+    y_true = trials[0].test_y
+    
+    nan_indices = {i for i in range(len(trials)) if np.isnan(trials[i].test_loss_f)}
+    
+    trial_accuracies = []
+    ensemble_preds = np.zeros_like(trials[0].test_yhat_f)
+    j = 0
+    for i in range(len(trials)):
+        if i in nan_indices:
+            continue
+        trial_yhat = trials[i].test_yhat_f
+        trial_accuracies.append(accuracy(trial_yhat, y_true))
+        ensemble_preds += trial_yhat
+        j += 1
+    if j != 0:
+        ensemble_preds /= j
+
+    assert ensemble_preds.shape == y_true.shape
+    
+    return np.mean(trial_accuracies), accuracy(ensemble_preds, y_true), len(nan_indices)
+
+
 def average_f_train_loss(trials):
     if len(trials) == 0:
         raise ValueError
@@ -138,6 +168,29 @@ def get_losses(results_list, P_first=True):
                 nested_num_nan[data_seed][alpha][P] = num_nan
     return nested_al, nested_el, nested_num_nan
 
+
+def get_accuracies(results_list, P_first=True):
+    nested_al = defaultdict(lambda: defaultdict(dict))
+    nested_el = defaultdict(lambda: defaultdict(dict))
+    nested_num_nan = defaultdict(lambda: defaultdict(dict))
+    for res in results_list:
+        data_seed = res['data_config']['data_seed']
+        P = res['data_config']['P']
+        num_tasks = len(res) - 1
+        for i in range(num_tasks):
+            task = res[f'task-{i}']
+            task_config = task[0]
+            alpha = task_config['model_params']['alpha']
+            al, el, num_nan = average_and_ensemble_accuracy(task[1])
+            if P_first:
+                nested_al[data_seed][P][alpha] = al
+                nested_el[data_seed][P][alpha] = el
+                nested_num_nan[data_seed][P][alpha] = num_nan
+            else:
+                nested_al[data_seed][alpha][P] = al
+                nested_el[data_seed][alpha][P] = el
+                nested_num_nan[data_seed][alpha][P] = num_nan
+    return nested_al, nested_el, nested_num_nan
 
 def get_train_losses(results_list, P_first=True):
     nested_al = defaultdict(lambda: defaultdict(dict))
