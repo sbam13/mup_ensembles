@@ -9,3 +9,4 @@ class Result:
     test_loss_f: chex.Scalar
     test_yhat_f: chex.ArrayTree
     test_y: chex.ArrayTree
+    num_epochs: chex.ArrayTree

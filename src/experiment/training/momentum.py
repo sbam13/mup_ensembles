@@ -22,6 +22,8 @@ from src.experiment.training.root_schedule import blocked_polynomial_schedule
 # from src.experiment.model.vgg import VGG_12
 from src.experiment.model.miniresnet import WideResnet
 
+from collections import deque
+
 # MSE loss function
 def mse(y, yhat):
     return jnp.mean((y - yhat) ** 2)
@@ -43,7 +45,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
 
 
 def train(apply_fn: Callable, params0: chex.ArrayTree, 
-        optimizer: optax.GradientTransformation, Xtr, ytr, X_test, y_test, keys: chex.PRNGKey, 
+        optimizer: optax.GradientTransformation, Xtr, ytr, X_val, y_val, X_test, y_test, keys: chex.PRNGKey, 
         alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     P = Xtr.shape[1]
     num_batches = P // batch_size # 0 is sharding dimension
@@ -88,7 +90,7 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
         return jnp.mean(lax_map(compute_batch_loss, (X_batched, y_batched)))
 
     MAX_LOSS_COMPUTE_BATCH_SIZE = 8192
-    MAX_TEST_LOSS_COMPUTE_BATCH_SIZE = 8000
+    MAX_TEST_LOSS_COMPUTE_BATCH_SIZE = 1600
     loss_compute_batch_size = min(MAX_LOSS_COMPUTE_BATCH_SIZE, P)
     compute_train_loss = pmap(partial(compute_loss, batch_size=loss_compute_batch_size))
     compute_test_loss = pmap(partial(compute_loss, batch_size=MAX_TEST_LOSS_COMPUTE_BATCH_SIZE))
@@ -148,31 +150,34 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     init_step_state = DistributedStepState(params=params0, opt_state=init_opt_state) # TODO: question? is using params0 in both screwing things up?
     init_epoch_state = DistributedEpochState(key=keys, p0=params0, model_state=init_step_state)
 
-    # loss cutoff
-    # THRESHOLD = 1e-2
-    # @partial(pmap)
-    # def cutoff(z):
-    #     return z < THRESHOLD
+    # early stopping rule
+    @partial(pmap)
+    def is_increasing(a, b, c):
+        return (a < b) & (b < c)
 
     # training loop
     state = init_epoch_state
     losses = []
     test_losses = []
+    TRAILING_VALIDATION_WINDOW = 3
+    trailing_validation_losses = deque((jnp.inf,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
         if e % 5 == 0:
-            train_losses = compute_train_loss(state, Xtr, ytr)
-            
-            losses.append(train_losses)
-            test_losses.append(compute_test_loss(state, X_test, y_test))
-            
-            # is_done = jnp.all(cutoff(train_losses))
-            # if is_done:
-            #     break
+            losses.append(compute_train_loss(state, Xtr, ytr))
+            test_losses.append(compute_test_loss(state, X_test, y_test))    
+        
+        validation_loss = compute_test_loss(state, X_val, y_val)
+        trailing_validation_losses.append(validation_loss)   
+        
+        stopping_criterion = is_increasing(*trailing_validation_losses)
+        is_done = jnp.all(stopping_criterion) # consider switching to any?
+        if is_done:
+            break
     info('...exiting loop.')
     # note that return value is a pytree
-    return state.model_state.params, losses, test_losses
+    return state.model_state.params, losses, test_losses, e
     
 
 def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
@@ -198,6 +203,16 @@ def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
     
     return pmap(compute_ld)(params, params_0, X_test, y_test)
 
+
+def validation_test_split(data: tuple, val_P: int = 1600) -> tuple[tuple]:
+    """Splits data into validation data of size val_P and test data of size P - val_P."""
+    X, y = data
+    P = X.shape[1]
+    val_select = vmap(lambda z: z[:val_P])
+    test_select = vmap(lambda z: z[val_P:])
+    X_val, y_val = val_select(X), val_select(y)
+    X_test, y_test = test_select(X), test_select(y)
+    return (X_val, y_val), (X_test, y_test)
 
 def apply(key, data, devices, model_params, training_params):
     N = model_params['N']
@@ -263,18 +278,18 @@ def apply(key, data, devices, model_params, training_params):
     P = data['train'][0].shape[1] # 0 is sharding dimension
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
-
-    params_f, train_losses, test_losses = train(apply_fn, params_0, optimizer, 
-                                    *data['train'], *data['test'], apply_keys,
+    val_data, test_data = validation_test_split(data['test'])
+    params_f, train_losses, test_losses, num_epochs = train(apply_fn, params_0, optimizer, 
+                                    *data['train'], *val_data, *test_data, apply_keys,
                                     alpha, epochs, batch_size)
     
     test_loss_f, test_yhat_f = loss_and_yhat(apply_fn, 
                                             alpha, params_f, params_0, 
-                                            *data['test'])
+                                            *test_data)
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
                 train_losses=train_losses, test_losses=test_losses, test_loss_f=test_loss_f, 
-                test_yhat_f=test_yhat_f, test_y=data['test'][1])
+                test_yhat_f=test_yhat_f, test_y=test_data[1], num_epochs=num_epochs)
     
     results = [None] * len(devices)
     for d in range(len(devices)):

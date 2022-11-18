@@ -62,7 +62,7 @@ def gen_sweeps(mo_vals, lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int,
 def _gen_sweep(id, lr, mo, alpha_vals, N_vals, P, es, seed_matrix, data_seed):
     dp = DataParams(P=P, data_seed=int(data_seed))
     tasks = TaskListConfig(data_params=dp)
-    STEPS = 2000
+    STEPS = 6000
     BATCH_SIZE = 256
     num_epochs = ceil(STEPS / (P / BATCH_SIZE))
     for j in range(len(N_vals)):
@@ -101,4 +101,4 @@ if __name__ == '__main__':
     # alphas = [1, 10, 100]
     # P_vals = [1024]
     # alphas = [1e0, 1e-1, 1e-2, 1e-3]
-    gen_sweeps([.9], [1e-3], alphas, [64], P_vals, 20, 4, 5, 838, 642)
+    gen_sweeps([.9], [1e-3], [1e-3, 1e-1, 1e0], [64], [2 ** 12, 2 ** 15], 4, 4, 1, 838, 642)
