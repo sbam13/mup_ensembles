@@ -290,7 +290,7 @@ def apply(key, data, devices, model_params, training_params):
 
     parallel_result = Result(weight_init_key=init_keys, params_f=params_f, 
                 train_losses=train_losses, test_losses=test_losses, test_loss_f=test_loss_f, 
-                test_yhat_f=test_yhat_f, test_y=test_data[1], num_epochs=num_epochs)
+                test_yhat_f=test_yhat_f, test_y=test_data[1])
     
     results = [None] * len(devices)
     for d in range(len(devices)):
