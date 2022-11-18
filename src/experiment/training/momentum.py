@@ -186,7 +186,7 @@ def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
     """Returns test loss and the predictions yhat."""
     # vapply_fn = vmap(apply_fn)
     # vloss = vmap(loss)
-    BATCH_SIZE = 500
+    BATCH_SIZE = 6400
 
     def compute_ld(params, p0, X, y):
         X_batched = X.reshape((-1, BATCH_SIZE, *X.shape[1:]))
