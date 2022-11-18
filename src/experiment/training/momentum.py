@@ -209,7 +209,6 @@ def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
 def validation_test_split(data: tuple, val_P: int = 1600) -> tuple[tuple]:
     """Splits data into validation data of size val_P and test data of size P - val_P."""
     X, y = data
-    P = X.shape[1]
     val_select = vmap(lambda z: z[:val_P])
     test_select = vmap(lambda z: z[val_P:])
     X_val, y_val = val_select(X), val_select(y)
