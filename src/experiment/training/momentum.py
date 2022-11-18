@@ -44,7 +44,7 @@ def initialize(keys: chex.PRNGKey, model, devices: list[Device]) -> chex.ArrayTr
     return pmap(get_params)(keys, replicated_dummy)
 
 
-def train(apply_fn: Callable, params0: chex.ArrayTree, 
+def train(devices, apply_fn: Callable, params0: chex.ArrayTree, 
         optimizer: optax.GradientTransformation, Xtr, ytr, X_val, y_val, X_test, y_test, keys: chex.PRNGKey, 
         alpha: chex.Scalar, epochs: int = 80, batch_size: int = 128) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     P = Xtr.shape[1]
@@ -159,8 +159,10 @@ def train(apply_fn: Callable, params0: chex.ArrayTree,
     state = init_epoch_state
     losses = []
     test_losses = []
+    
+    inf_losses = device_put_replicated(jnp.array(jnp.inf), devices)
     TRAILING_VALIDATION_WINDOW = 3
-    trailing_validation_losses = deque((jnp.inf,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
+    trailing_validation_losses = deque((inf_losses,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
@@ -279,7 +281,7 @@ def apply(key, data, devices, model_params, training_params):
     if P % batch_size != 0:
         raise ValueError(f'Batch size of {batch_size} does not divide training data size {P}.')
     val_data, test_data = validation_test_split(data['test'])
-    params_f, train_losses, test_losses, num_epochs = train(apply_fn, params_0, optimizer, 
+    params_f, train_losses, test_losses, num_epochs = train(devices, apply_fn, params_0, optimizer, 
                                     *data['train'], *val_data, *test_data, apply_keys,
                                     alpha, epochs, batch_size)
     
