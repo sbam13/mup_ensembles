@@ -179,7 +179,7 @@ def train(devices, apply_fn: Callable, params0: chex.ArrayTree,
             break
     info('...exiting loop.')
     # note that return value is a pytree
-    return state.model_state.params, losses, test_losses, e
+    return state.model_state.params, losses, test_losses, jnp.array(e)
     
 
 def loss_and_yhat(apply_fn, alpha, params, params_0, X_test, y_test):
