@@ -160,9 +160,9 @@ def train(devices, apply_fn: Callable, params0: chex.ArrayTree,
     losses = []
     test_losses = []
     
-    inf_losses = device_put_replicated(jnp.array(jnp.inf), devices)
-    TRAILING_VALIDATION_WINDOW = 2
-    trailing_validation_losses = deque((inf_losses,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
+    # inf_losses = device_put_replicated(jnp.array(jnp.inf), devices)
+    # TRAILING_VALIDATION_WINDOW = 2
+    # trailing_validation_losses = deque((inf_losses,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
     info('Entering training loop...')
     for e in range(epochs):
         state = update(state, Xtr, ytr)
@@ -170,13 +170,13 @@ def train(devices, apply_fn: Callable, params0: chex.ArrayTree,
             losses.append(compute_train_loss(state, Xtr, ytr))
             test_losses.append(compute_test_loss(state, X_test, y_test))    
         
-        validation_loss = compute_test_loss(state, X_val, y_val)
-        trailing_validation_losses.append(validation_loss)   
+        # validation_loss = compute_test_loss(state, X_val, y_val)
+        # trailing_validation_losses.append(validation_loss)   
         
-        stopping_criterion = is_increasing(*trailing_validation_losses)
-        is_done = jnp.all(stopping_criterion) # consider switching to any?
-        if is_done:
-            break
+        # stopping_criterion = is_increasing(*trailing_validation_losses)
+        # is_done = jnp.all(stopping_criterion) # consider switching to any?
+        # if is_done:
+        #     break
     info('...exiting loop.')
     # note that return value is a pytree
     return state.model_state.params, losses, test_losses, jnp.array(e)
