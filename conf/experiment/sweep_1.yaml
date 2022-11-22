@@ -9,45 +9,136 @@ hyperparams:
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 141
+      epochs: 6000
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.001
-    repeat: 4
+    repeat: 20
     parallelize: true
-    seed: 235724
+    seed: 491261
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 141
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.0021544346900318843
+    repeat: 20
+    parallelize: true
+    seed: 215176
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.004641588833612777
+    repeat: 20
+    parallelize: true
+    seed: 854477
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.01
+    repeat: 20
+    parallelize: true
+    seed: 221710
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.021544346900318832
+    repeat: 20
+    parallelize: true
+    seed: 814171
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.046415888336127774
+    repeat: 20
+    parallelize: true
+    seed: 73647
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.1
-    repeat: 4
+    repeat: 20
     parallelize: true
-    seed: 516065
+    seed: 512460
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 141
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.21544346900318823
+    repeat: 20
+    parallelize: true
+    seed: 532617
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
+      full_batch_gradient: false
+    model_params:
+      'N': 64
+      alpha: 0.46415888336127775
+    repeat: 20
+    parallelize: true
+    seed: 260275
+  - training_params:
+      eta_0: 0.001
+      momentum: 0.9
+      weight_decay: 1.0e-05
+      batch_size: 256
+      epochs: 6000
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 1.0
-    repeat: 4
+    repeat: 20
     parallelize: true
-    seed: 700819
+    seed: 227342
   data_params:
-    P: 32768
+    P: 1024
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 899688
+    data_seed: 858120
     root_dir: data-dir
 base_dir: /tmp/1

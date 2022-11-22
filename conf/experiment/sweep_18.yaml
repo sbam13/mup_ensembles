@@ -9,136 +9,136 @@ hyperparams:
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.001
     repeat: 20
     parallelize: true
-    seed: 695802
+    seed: 47033
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.0021544346900318843
     repeat: 20
     parallelize: true
-    seed: 746420
+    seed: 198633
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.004641588833612777
     repeat: 20
     parallelize: true
-    seed: 94245
+    seed: 186740
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.01
     repeat: 20
     parallelize: true
-    seed: 254800
+    seed: 601118
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.021544346900318832
     repeat: 20
     parallelize: true
-    seed: 645321
+    seed: 686409
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.046415888336127774
     repeat: 20
     parallelize: true
-    seed: 999400
+    seed: 431878
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.1
     repeat: 20
     parallelize: true
-    seed: 246004
+    seed: 448342
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.21544346900318823
     repeat: 20
     parallelize: true
-    seed: 969389
+    seed: 803185
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 0.46415888336127775
     repeat: 20
     parallelize: true
-    seed: 863490
+    seed: 258342
   - training_params:
       eta_0: 0.001
       momentum: 0.9
       weight_decay: 1.0e-05
       batch_size: 256
-      epochs: 12000
+      epochs: 750
       full_batch_gradient: false
     model_params:
       'N': 64
       alpha: 1.0
     repeat: 20
     parallelize: true
-    seed: 575621
+    seed: 360130
   data_params:
-    P: 512
+    P: 8192
     k: 0
     on_device: true
     random_subset: true
-    data_seed: 858120
+    data_seed: 239699
     root_dir: data-dir
-base_dir: /tmp/0
+base_dir: /tmp/18
