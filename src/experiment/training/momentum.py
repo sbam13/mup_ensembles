@@ -161,7 +161,7 @@ def train(devices, apply_fn: Callable, params0: chex.ArrayTree,
     test_losses = []
     
     inf_losses = device_put_replicated(jnp.array(jnp.inf), devices)
-    TRAILING_VALIDATION_WINDOW = 3
+    TRAILING_VALIDATION_WINDOW = 2
     trailing_validation_losses = deque((inf_losses,) * TRAILING_VALIDATION_WINDOW, maxlen=TRAILING_VALIDATION_WINDOW)
     info('Entering training loop...')
     for e in range(epochs):
