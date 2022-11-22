@@ -152,8 +152,8 @@ def train(devices, apply_fn: Callable, params0: chex.ArrayTree,
 
     # early stopping rule
     @partial(pmap)
-    def is_increasing(a, b, c):
-        return (a < b) & (b < c)
+    def is_increasing(a, b):
+        return a < b
 
     # training loop
     state = init_epoch_state
