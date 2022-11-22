@@ -3,7 +3,7 @@
 #SBATCH --job-name=19
 #SBATCH -e /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.err
 #SBATCH -o /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.out
-#SBATCH --time=24:00:00
+#SBATCH --time=2-00
 #SBATCH --nodes=1
 #SBATCH --mem=64g
 #SBATCH --partition=pehlevan_gpu,gpu
