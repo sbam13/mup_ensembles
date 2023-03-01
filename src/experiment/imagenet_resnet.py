@@ -1,15 +1,7 @@
-import os
-import shutil
 from enum import Enum
 from typing import Mapping
-import chex
 
-import jax.numpy as jnp
-from jax import vmap, jit
-from jax.random import PRNGKey, permutation
-from jax.lax import cond
-
-from torch.utils.data import Seq
+from jax.random import PRNGKey
 
 from src.experiment.dataset.imagenet import load_imagenet_data
 
@@ -20,8 +12,6 @@ from src.run.OnlinePreprocessDevice import OnlinePreprocessDevice as OPD
 import src.run.constants as constants
 from src.tasks.read_tasks import TaskReader as TR
 from src.tasks.task import Task
-
-from flax.core.frozen_dict import freeze
 
 from omegaconf import OmegaConf
 
