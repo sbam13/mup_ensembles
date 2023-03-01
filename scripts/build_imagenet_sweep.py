@@ -100,8 +100,8 @@ if __name__ == '__main__':
     dp = DataParams(data_seed=data_seed)
 
     tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(), model_params=ModelParams(N=w), seed=seed)], data_params=dp) for w in widths]
-    configs = [Config(setting=Setting(), hyperparams=tlc_inst) for tlc_inst in tlcs]
-    str_configs = [OmegaConf.to_yaml(conf) for conf in configs]
+    configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
+    str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
 
     curr_dir = dirname(__file__)
     config_save_folder = join(curr_dir, CONFIG_DIR)

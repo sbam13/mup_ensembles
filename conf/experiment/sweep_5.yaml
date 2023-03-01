@@ -1,3 +1,4 @@
+# @package _global_
 setting:
   dataset: imagenet
   model: resnet18
@@ -8,7 +9,7 @@ hyperparams:
       minibatch_size: 1024
       microbatch_size: 64
       num_workers: 28
-      epochs: 10
+      epochs: 1
       full_batch_gradient: false
     model_params:
       'N': 128
@@ -17,5 +18,5 @@ hyperparams:
     P: 524288
     data_seed: 1234
     root_dir: data-dir
-    val_P: 2048
-base_dir: ''
+    val_P: 1024
+base_dir: /tmp/5

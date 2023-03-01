@@ -1,15 +1,11 @@
 from functools import partial
 from logging import info
 
-import time
-
 import chex
 import jax.numpy as jnp
 import optax
 
 from flax.training import train_state, checkpoints
-
-from tqdm import trange
 
 from jax import jit, vmap, tree_map, value_and_grad, ShapeDtypeStruct
 from jax.lax import scan
@@ -19,6 +15,8 @@ import orbax
 
 import os.path
 import os
+
+import time
 
 from jax.random import split
 # from src.experiment.training.Result import OnlineResult
@@ -33,14 +31,8 @@ from functools import partial
 
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
-SPACING_MULTIPLIER = 1.1
+SPACING_MULTIPLIER = 1.4
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
-
-def cross_entropy(logits, targets):
-    """logprobs = batch size x classes; targets = batch size"""
-    nll = jnp.take_along_axis(logits, targets[:, None], axis=1)
-    ce = -jnp.mean(nll)
-    return ce
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
@@ -124,7 +116,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
         def loss_fn(params, batch_stats, Xin, yin):
             vars = {'params': params, 'batch_stats': batch_stats}
             y_hat, update_bs = apply_fn(vars, Xin)
-            loss = cross_entropy(y_hat, yin)
+            loss = optax.softmax_cross_entropy_with_integer_labels(y_hat, yin)
             return loss, (y_hat, update_bs)
         
         loss_grad_fn = value_and_grad(loss_fn, has_aux=True)
@@ -169,24 +161,31 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
     # -------------------------------------------------------------------------
     # data collection helper
-    @jit
-    def get_logits(state, x, y):
+    def get_loss_stats(state, x, y):
         num_batches = x.shape[0] // batch_size
         x_sb = x.reshape((num_batches, batch_size, *x.shape[1:]))
         y_sb = y.reshape((num_batches, batch_size, *y.shape[1:]))
 
         @partial(vmap, axis_name='within_subset', in_axes=0)
-        def get_subset_logits(ind_state):
+        def get_subset_loss_stats(ind_state):
             variables = {'params': ind_state.params, 'batch_stats': ind_state.batch_stats}
-            def logit(batch_data):
+            def loss_stats_subroutine(batch_data):
                 x_batch, batch_targets = batch_data
-                y_hat = state.apply_fn(variables, x_batch, train=False)
-                return jnp.take_along_axis(y_hat, batch_targets[:, None], axis=1)[:, 0]
+                logits = state.apply_fn(variables, x_batch, train=False)
+                
+                logits_max = jnp.max(logits, axis=-1, keepdims=True)
+                logits -= jax.lax.stop_gradient(logits_max)
+                
+                label_logits = jnp.take_along_axis(logits, batch_targets[..., None], axis=-1)[..., 0]
+                log_normalizers = jnp.log(jnp.sum(jnp.exp(logits), axis=-1))
+                ens_log_normalizers = jnp.log(jnp.sum(jnp.exp(logits / n_ensemble), axis=-1))
+                
+                return (label_logits, log_normalizers, ens_log_normalizers)
 
-            logits_sb = jax.lax.map(logit, (x_sb, y_sb))
-            return logits_sb.reshape((x.shape[0], *logits_sb.shape[2:]))
+            loss_stats = jax.lax.map(loss_stats_subroutine, (x_sb, y_sb))
+            return tree_map(lambda z: z.reshape((x.shape[0],)), loss_stats)
 
-        return jax.lax.map(get_subset_logits, state) 
+        return jax.lax.map(get_subset_loss_stats, state) 
 
     # -------------------------------------------------------------------------
     model = ResNet18(num_classes=NUM_CLASSES, num_filters=N)
@@ -204,15 +203,39 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
     # training loop
     state = init_step_state
+    gls = jax.jit(get_loss_stats).lower(init_step_state, jax.ShapeDtypeStruct((tranche_size, 224, 224, 3), jnp.dtype('float32')), jax.ShapeDtypeStruct((tranche_size,), jnp.dtype('int32'))).compile()
+
+    # -------------------------------------------------------------------------
+    # create checkpointer
+    info('create checkpointer')
+    checkpointer = orbax.checkpoint.PyTreeCheckpointer()
+    ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}')
+
+    def save_stats(step, state, train_x, train_y, val_x, val_y):
+        train_loss_stats = gls(state, train_x, train_y)
+        val_loss_stats = gls(state, val_x, val_y)
+        ckpt = {'train': train_loss_stats, 'val': val_loss_stats}
+        checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
+                                step=step, overwrite=False, keep=150,
+                                orbax_checkpointer=checkpointer)
+        return
+
+    def cleanup_save_stats(step, state, val_x, val_y):
+        val_loss_stats = gls(state, val_x, val_y)
+        ckpt = {'train': None, 'val': val_loss_stats}
+        checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
+                                step=step, overwrite=False, keep=150,
+                                orbax_checkpointer=checkpointer)
+        return
+    info('...done')
+    # -------------------------------------------------------------------------
 
     info('Entering training loop...')
     try:
-        checkpointer = orbax.checkpoint.PyTreeCheckpointer()
-        ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}')
         steps = 0
         prev_record_step = 0
-        for e in trange(epochs):
-            # t = time.time()
+        start = time.time()
+        for _ in range(epochs):
             prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N)
             for _, batch in enumerate(prefetch_iter):
                 x, y = batch
@@ -220,23 +243,10 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
                 steps += num_batches
                 if steps > SPACING_MULTIPLIER * prev_record_step:
                     prev_record_step = steps
-                    train_logits = get_logits(state, x, y)
-                    val_logits = get_logits(state, x, y)
-                    ckpt = {'train': train_logits, 'val': val_logits}
-                    checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
-                        step=steps, overwrite=False, keep=150,
-                        orbax_checkpointer=checkpointer)
-                    info(f'step {steps}')
-
-            # info(f'Epoch {e} elapsed time: {time.time() - t} s')
-            # validation_loss = compute_test_loss(state, X_val, y_val)
-            # trailing_validation_losses.append(validation_loss)   
-            
-            # stopping_criterion = is_increasing(*trailing_validation_losses)
-            # is_done = jnp.all(stopping_criterion) # consider switching to any?
-            # if is_done:
-            #     break
+                    save_stats(steps, state, x, y, X_val, y_val)
+                    info(f'step {steps}: elapsed time {time.time() - start}')
     finally:
+        cleanup_save_stats(steps, state, X_val, y_val)
         model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_model')
         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
 
@@ -268,6 +278,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params, N
     del key
 
     vars_0 = initialize(init_keys, N, div) # shape: (n_ensemble // div, div, param dims)
+    info('initialized parameters!')
 
     # optimizer
     eta_0 = training_params['eta_0']
@@ -282,6 +293,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params, N
     batch_size = training_params['batch_size']
     epochs = training_params['epochs']
 
+    info('entering train function')
     _ = train(subsample_key, vars_0, N, optimizer, train_loader, *val_data, epochs, batch_size, n_ensemble)
 
     # result = OnlineResult(key, N, n_ensemble, train_losses, val_losses)

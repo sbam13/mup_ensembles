@@ -10,7 +10,7 @@ class TrainingParams:
     minibatch_size: int = 1024 # changed
     microbatch_size: int = 64
     num_workers: int = 28
-    epochs: int = 10
+    epochs: int = 1
     full_batch_gradient: bool = False
 
 
@@ -22,7 +22,7 @@ class DataParams:
     # random_subset: bool = True
     data_seed: int = MISSING
     root_dir: str = 'data-dir'
-    val_P: int = 2048
+    val_P: int = 1024
 
 
 @dataclass
