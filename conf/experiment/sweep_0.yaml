@@ -1,144 +1,21 @@
-# @package _global_
 setting:
-  dataset: cifar10
+  dataset: imagenet
   model: resnet18
 hyperparams:
   task_list:
   - training_params:
       eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
+      minibatch_size: 1024
+      microbatch_size: 64
+      num_workers: 28
+      epochs: 10
       full_batch_gradient: false
     model_params:
-      'N': 64
-      alpha: 0.001
-    repeat: 20
-    parallelize: true
-    seed: 695802
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.0021544346900318843
-    repeat: 20
-    parallelize: true
-    seed: 746420
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.004641588833612777
-    repeat: 20
-    parallelize: true
-    seed: 94245
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.01
-    repeat: 20
-    parallelize: true
-    seed: 254800
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.021544346900318832
-    repeat: 20
-    parallelize: true
-    seed: 645321
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.046415888336127774
-    repeat: 20
-    parallelize: true
-    seed: 999400
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.1
-    repeat: 20
-    parallelize: true
-    seed: 246004
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.21544346900318823
-    repeat: 20
-    parallelize: true
-    seed: 969389
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 0.46415888336127775
-    repeat: 20
-    parallelize: true
-    seed: 863490
-  - training_params:
-      eta_0: 0.001
-      momentum: 0.9
-      weight_decay: 1.0e-05
-      batch_size: 256
-      epochs: 12000
-      full_batch_gradient: false
-    model_params:
-      'N': 64
-      alpha: 1.0
-    repeat: 20
-    parallelize: true
-    seed: 575621
+      'N': 4
+    seed: 4892
   data_params:
-    P: 512
-    k: 0
-    on_device: true
-    random_subset: true
-    data_seed: 858120
+    P: 524288
+    data_seed: 1234
     root_dir: data-dir
-base_dir: /tmp/0
+    val_P: 2048
+base_dir: ''

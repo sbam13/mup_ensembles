@@ -52,6 +52,6 @@ class Task_ConfigSubset:
 
     seed: tuple
 
-    repeat: int 
+    # repeat: int 
 
     

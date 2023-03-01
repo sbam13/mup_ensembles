@@ -4,36 +4,41 @@ from omegaconf import MISSING
 
 @dataclass
 class TrainingParams:
-    eta_0: float = 0.1
-    momentum: float = 0.9
-    weight_decay: float = 1e-5 # TODO: not implemented; replace with batch_size
-    batch_size: int = 128
-    epochs: int = 80
+    eta_0: float = 1e-3
+    # momentum: float = 0.9
+    # weight_decay: float = 1e-5 # TODO: not implemented; replace with batch_size
+    minibatch_size: int = 1024 # changed
+    microbatch_size: int = 64
+    num_workers: int = 28
+    epochs: int = 10
     full_batch_gradient: bool = False
 
 
 @dataclass
 class DataParams:
-    P: int = MISSING
-    k: int = 0 # no target fn
-    on_device: bool = True
-    random_subset: bool = True
+    P: int = 2 ** 19
+    # k: int = 0 # no target fn
+    # on_device: bool = True
+    # random_subset: bool = True
     data_seed: int = MISSING
     root_dir: str = 'data-dir'
+    val_P: int = 2048
 
 
 @dataclass
 class ModelParams:
     N: int = 100
-    alpha: float = 1.0
+    # widths: list[int] = [100] # TODO: added for ensembling within GPU
+    # repeat: int = 32 # replicated
+    # alpha: float = 1.0
 
 
 @dataclass
 class TaskConfig:
     training_params: TrainingParams = field(default_factory=TrainingParams)
     model_params: ModelParams = field(default_factory=ModelParams)
-    repeat: int = 12
-    parallelize: bool = True
+    # repeat: int = 32
+    # parallelize: bool = True
     seed: int = MISSING
 
 
@@ -44,7 +49,7 @@ class TaskListConfig:
 
 @dataclass
 class Setting:
-  dataset: str = 'cifar10'
+  dataset: str = 'imagenet'
   model: str = 'resnet18'
 
 @dataclass
