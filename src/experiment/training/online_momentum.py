@@ -167,30 +167,8 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
         return jax.lax.map(partial_subset_update, state)
 
-
-
-    # ----------------------------------------------------------------------
-    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N)
-
-    def create_train_state(params, tx, bs):
-        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs)
-
-    # removed pmap
-    init_params = vars_0['params']
-    init_bs = vars_0['batch_stats']
-    init_opt_state = vmap(vmap(optimizer.init, axis_name='within_subset'), 
-                        axis_name='over_subsets')(init_params)
-    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset'), 
-                        axis_name='over_subsets')(init_params, init_opt_state, init_bs)
-    
-    # training loop
-    state = init_step_state
-    # losses = []
-    # val_losses = []
-
-    # def record(key, state, x, y):
-    #         losses.append(compute_average_ensemble_loss(key, state, x, y))
-    #         val_losses.append(compute_average_ensemble_loss(key, state, X_val, y_val))    
+    # -------------------------------------------------------------------------
+    # data collection helper
     @jit
     def get_logits(state, x, y):
         num_batches = x.shape[0] // batch_size
@@ -210,6 +188,22 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
         return jax.lax.map(get_subset_logits, state) 
 
+    # -------------------------------------------------------------------------
+    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N)
+
+    def create_train_state(params, tx, bs):
+        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs)
+
+    # removed pmap
+    init_params = vars_0['params']
+    init_bs = vars_0['batch_stats']
+    init_opt_state = vmap(vmap(optimizer.init, axis_name='within_subset'), 
+                        axis_name='over_subsets')(init_params)
+    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset'), 
+                        axis_name='over_subsets')(init_params, init_opt_state, init_bs)
+
+    # training loop
+    state = init_step_state
 
     info('Entering training loop...')
     try:
@@ -268,12 +262,14 @@ def apply(key, train_loader, val_data, devices, model_params, training_params, N
     n_ensemble = get_n_ensemble(N)
     div = get_div_size(N, n_ensemble)
 
+    # initialize!
     key, subsample_key = split(key)
     init_keys = split(key, num=n_ensemble)
     del key
 
     vars_0 = initialize(init_keys, N, div) # shape: (n_ensemble // div, div, param dims)
 
+    # optimizer
     eta_0 = training_params['eta_0']
 
     adam = optax.adam(eta_0)

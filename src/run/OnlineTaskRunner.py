@@ -28,13 +28,13 @@ class OnlineTaskRunner:
         
         mp, tp = dict(task.model_params), dict(task.training_params)
 
-        widths = mp.widths
+        N = mp.N
         # TODO: hacky way to transition to ensembling within GPU
-        iters = len(widths) // num_devices
+        # iters = len(widths) // num_devices
         # TODO: num_devices doesn't actually have to divide task.repeat!
         key = task.seed
-        iter_keys = split(key, num=iters)
-        del key
+        # iter_keys = split(key, num=iters)
+        # del key
 
         apply = task.apply_callback
 
@@ -57,17 +57,17 @@ class OnlineTaskRunner:
         num_workers = tp['num_workers']
         train_loader = DataLoader(train_data, minibatch_size, num_workers=num_workers, drop_last=True)
 
-        for batch in range(0, iters):
-            batch_widths = widths[batch*num_devices:(batch + 1)*num_devices]
+        # for batch in range(0, iters):
+        #     batch_widths = widths[batch*num_devices:(batch + 1)*num_devices]
 
-            key = iter_keys[batch]
+        #     key = iter_keys[batch]
             # data is replicated across devices, everything else is not
-            _ = apply(key, train_loader, val_data, devices, mp, tp, batch_widths)
+        _ = apply(key, train_loader, val_data, devices, mp, tp, N)
 
-            # idx = batch * num_devices
-            # for replica, result in enumerate(batch_results):
-            #     local_result = device_get(result)
-            #     save_result(save_folder, local_result, fname = f'trial_width_{batch_widths[replica]}_result.pkl')
+        # idx = batch * num_devices
+        # for replica, result in enumerate(batch_results):
+        #     local_result = device_get(result)
+        #     save_result(save_folder, local_result, fname = f'trial_width_{batch_widths[replica]}_result.pkl')
 
 
 def save_config(dir: str, task: Task):
