@@ -28,7 +28,7 @@ class OnlineTaskRunner:
         
         mp, tp = dict(task.model_params), dict(task.training_params)
 
-        N = mp.N
+        N = mp['N']
         # TODO: hacky way to transition to ensembling within GPU
         # iters = len(widths) // num_devices
         # TODO: num_devices doesn't actually have to divide task.repeat!
