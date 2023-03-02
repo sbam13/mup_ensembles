@@ -116,7 +116,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
         def loss_fn(params, batch_stats, Xin, yin):
             vars = {'params': params, 'batch_stats': batch_stats}
             y_hat, update_bs = apply_fn(vars, Xin)
-            loss = optax.softmax_cross_entropy_with_integer_labels(y_hat, yin)
+            loss = jnp.mean(optax.softmax_cross_entropy_with_integer_labels(y_hat, yin))
             return loss, (y_hat, update_bs)
         
         loss_grad_fn = value_and_grad(loss_fn, has_aux=True)
