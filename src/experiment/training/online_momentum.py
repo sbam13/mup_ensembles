@@ -260,7 +260,11 @@ def get_n_ensemble(width):
 
 
 def get_div_size(N: int, ensemble_size: int):
-    return min(int((2 ** 10) // N), ensemble_size)
+    div = min(int((2 ** 10) // N), ensemble_size)
+    if N == 128:
+        return div // 2
+    else:
+        return div
 
 
 def apply(key, train_loader, val_data, devices, model_params, training_params, N):
