@@ -3,11 +3,11 @@ import time
 
 from src.tasks.task import Task
 from src.run.PreprocessDevice import PreprocessDevice
-from src.run.TaskRunner import TaskRunner
+from src.run.OnlineTaskRunner import OnlineTaskRunner
 
 from logging import info, error
 
-def _run_task(task: Task, runner: TaskRunner):
+def _run_task(task: Task, runner: OnlineTaskRunner):
     info(f'Task {task._id} starting...')
     start = time.time()
     try:
@@ -23,7 +23,7 @@ def _run_task(task: Task, runner: TaskRunner):
     info(f'Task {task._id} completed. Elapsed time (s): {elapsed}.')
 
 def run_tasks(tasks: list[Task], specs: PreprocessDevice):
-    runner = TaskRunner(specs)
+    runner = OnlineTaskRunner(specs)
 
     for task in tasks:
         _run_task(task, runner)
