@@ -38,7 +38,7 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                     std=[0.229, 0.224, 0.225])
 
-    channels_last_transform = transforms.Lambda(lambda x: x.permute(0, 2, 3, 1))
+    channels_last_transform = transforms.Lambda(lambda x: x.permute(1, 2, 0))
 
     transform_comp = transforms.Compose([
             transforms.RandomResizedCrop(224),
