@@ -261,7 +261,7 @@ def get_n_ensemble(width):
 
 def get_div_size(N: int, ensemble_size: int):
     div = min(int((2 ** 10) // N), ensemble_size)
-    if N == 128:
+    if N in [16, 128]:
         return div // 2
     else:
         return div
