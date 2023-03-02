@@ -258,12 +258,12 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 def get_n_ensemble(width):
     NUM_ENS_64 = 64
     _exp = np.log2(width) - 6.0
-    ens = NUM_ENS_64 // ((3.9) ** _exp)
+    ens = NUM_ENS_64 // (4 ** _exp)
     return int(ens)
 
 
 def get_div_size(N: int, ensemble_size: int):
-    return min(int((2 ** 10) // N), ensemble_size)
+    return min(int((2 ** 11) // N), ensemble_size)
 
 
 def apply(key, train_loader, val_data, devices, model_params, training_params, N):
