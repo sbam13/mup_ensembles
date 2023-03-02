@@ -105,7 +105,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
     
     @jit
-    @vmap(in_axes=(0, None, None), axis_name='ensemble')
+    @partial(vmap, in_axes=(0, None, None), axis_name='ensemble')
     def _subset_update(state: TrainState, Xtr_sb: chex.ArrayDevice, ytr_sb: chex.ArrayDevice) -> TrainState:
         """Runs one minibatch (formerly epoch)."""
         def apply_fn(vars, Xin):
