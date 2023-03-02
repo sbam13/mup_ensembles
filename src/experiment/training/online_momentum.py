@@ -196,10 +196,8 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
     # removed pmap
     init_params = vars_0['params']
     init_bs = vars_0['batch_stats']
-    init_opt_state = vmap(vmap(optimizer.init, axis_name='within_subset'), 
-                        axis_name='over_subsets')(init_params)
-    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset'), 
-                        axis_name='over_subsets')(init_params, init_opt_state, init_bs)
+    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset', in_axes=(0, None, 0)), 
+                        axis_name='over_subsets', in_axes=(0, None, 0))(init_params, optimizer, init_bs)
 
     # training loop
     state = init_step_state
