@@ -290,7 +290,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params, N
     optimizer = optax.multi_transform(opt_mapping, param_mapping)
 
     # train!
-    batch_size = training_params['batch_size']
+    batch_size = training_params['microbatch_size']
     epochs = training_params['epochs']
 
     info('entering train function')
