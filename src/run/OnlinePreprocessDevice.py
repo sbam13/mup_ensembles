@@ -38,14 +38,15 @@ class OnlinePreprocessDevice(ABC):
         
         divisible_len_vd = vd_batch_size * NUM_WORKERS
         images = ch.zeros((divisible_len_vd, 224, 224, 3), dtype=ch.float32)
-        labels = [0] * divisible_len_vd
+        labels = []
         for i, batch in enumerate(vd_loader):
             im, lab = batch
             images[i*vd_batch_size:(i + 1)*vd_batch_size, :, :, :] = im
-            labels[i*vd_batch_size:(i + 1)*vd_batch_size] = lab
+            labels += lab
 
         jnp_images = jnp.array(images)
-        jnp_labels = jnp.array(labels, dtype=jnp.float32)
+        jnp_labels = jnp.array(labels, dtype=jnp.int32)
+        logging.info(f'validation label shape: {jnp_labels.shape}')
 
         # maintains pmap order of devices
         self.devices = jax.lib.xla_bridge.get_backend().get_default_device_assignment(jax.device_count())

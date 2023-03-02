@@ -104,7 +104,6 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
     #     return losses
 
     
-    @jit
     @partial(vmap, in_axes=(0, None, None), axis_name='ensemble')
     def _subset_update(state: TrainState, Xtr_sb: chex.ArrayDevice, ytr_sb: chex.ArrayDevice) -> TrainState:
         """Runs one minibatch (formerly epoch)."""
@@ -117,7 +116,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
             vars = {'params': params, 'batch_stats': batch_stats}
             y_hat, update_bs = apply_fn(vars, Xin)
             loss = jnp.mean(optax.softmax_cross_entropy_with_integer_labels(y_hat, yin))
-            return loss, (y_hat, update_bs)
+            return loss, update_bs
         
         loss_grad_fn = value_and_grad(loss_fn, has_aux=True)
         # -----------------------------------------------------------
@@ -131,7 +130,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
             # update params
             # param_shape = tree_map(lambda z: z.shape, params)
             # data_shape = tree_map(lambda z: z.shape, batch)
-            (_, (_, update_bs)), grads = loss_grad_fn(step_state.params, step_state.batch_stats, batch, labels)
+            (_, update_bs), grads = loss_grad_fn(step_state.params, step_state.batch_stats, batch, labels)
             updates, opt_state = optimizer.update(grads, opt_state, step_state.params)
             
             # apply updates only to mutable params
@@ -156,7 +155,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
         def partial_subset_update(state_stacked):
             return _subset_update(state_stacked, Xtr_sb, ytr_sb)
-
+        
         return jax.lax.map(partial_subset_update, state)
 
     # -------------------------------------------------------------------------
@@ -261,7 +260,7 @@ def get_n_ensemble(width):
 
 
 def get_div_size(N: int, ensemble_size: int):
-    return min(int((2 ** 11) // N), ensemble_size)
+    return min(int((2 ** 10) // N), ensemble_size)
 
 
 def apply(key, train_loader, val_data, devices, model_params, training_params, N):
