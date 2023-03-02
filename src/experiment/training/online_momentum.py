@@ -294,7 +294,14 @@ def apply(key, train_loader, val_data, devices, model_params, training_params, N
     epochs = training_params['epochs']
 
     info('entering train function')
-    _ = train(subsample_key, vars_0, N, optimizer, train_loader, *val_data, epochs, batch_size, n_ensemble)
+    _ = train(vars_0, 
+            N, 
+            optimizer, 
+            train_loader, 
+            *val_data, 
+            epochs, 
+            batch_size, 
+            n_ensemble)
 
     # result = OnlineResult(key, N, n_ensemble, train_losses, val_losses)
     return None
