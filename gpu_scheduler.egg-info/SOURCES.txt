@@ -1,7 +1,0 @@
-LICENSE
-README.md
-setup.py
-gpu_scheduler.egg-info/PKG-INFO
-gpu_scheduler.egg-info/SOURCES.txt
-gpu_scheduler.egg-info/dependency_links.txt
-gpu_scheduler.egg-info/top_level.txt
