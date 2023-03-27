@@ -28,6 +28,6 @@ cd /tmp/-1/gpu_scheduler
 
 rm conf/config.yaml
 
-printf "defaults:\n  - experiment: sweep_-1" > conf/config.yaml
+printf "defaults:\n  - experiment: sweep_lr_-1" > conf/config.yaml
 
 srun python3 main.py

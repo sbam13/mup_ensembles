@@ -28,6 +28,6 @@ cd /tmp/256/gpu_scheduler
 
 rm conf/config.yaml
 
-printf "defaults:\n  - experiment: sweep_256" > conf/config.yaml
+printf "defaults:\n  - experiment: sweep_width_256" > conf/config.yaml
 
 srun python3 main.py
