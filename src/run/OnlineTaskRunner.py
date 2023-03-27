@@ -1,15 +1,10 @@
 import logging
-from jax.random import split
-from jax import device_get
-from src.experiment.training.momentum import Result
 from src.run.OnlinePreprocessDevice import OnlinePreprocessDevice
 
 from src.tasks.task import Task, Task_ConfigSubset
 
 from os.path import join, exists
 from os import mkdir
-
-from pickle import dump
 
 from omegaconf import OmegaConf
 
@@ -24,11 +19,9 @@ class OnlineTaskRunner:
 
     def run_repeat_task(self, task: Task):
         devices = self.preprocess_device.devices
-        num_devices = len(devices)
         
         mp, tp = dict(task.model_params), dict(task.training_params)
 
-        N = mp['N']
         # TODO: hacky way to transition to ensembling within GPU
         # iters = len(widths) // num_devices
         # TODO: num_devices doesn't actually have to divide task.repeat!
@@ -55,14 +48,14 @@ class OnlineTaskRunner:
         
         minibatch_size = tp['minibatch_size']
         num_workers = tp['num_workers']
-        train_loader = DataLoader(train_data, minibatch_size, num_workers=num_workers, drop_last=True)
+        train_loader = DataLoader(train_data, minibatch_size, num_workers=num_workers, drop_last=True, persistent_workers=True, shuffle=True)
 
         # for batch in range(0, iters):
         #     batch_widths = widths[batch*num_devices:(batch + 1)*num_devices]
 
         #     key = iter_keys[batch]
             # data is replicated across devices, everything else is not
-        _ = apply(key, train_loader, val_data, devices, mp, tp, N)
+        _ = apply(key, train_loader, val_data, devices, mp, tp)
 
         # idx = batch * num_devices
         # for replica, result in enumerate(batch_results):

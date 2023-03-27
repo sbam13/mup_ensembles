@@ -69,6 +69,21 @@ class NTK_Dense(nn.Dense):
         norm = self.variable('scaler', 'fan-in', sqrt_fan_in_size, x.shape[1:])
         return (RELU_SIGMA / norm.value) * super().__call__(x)
 
+class MF_Conv(nn.Conv):
+    @nn.compact
+    def __call__(self, x): # TODO: change so this is not idiosync for CIFAR
+        fan_in_size = lambda shape: self.kernel_size[0] * self.kernel_size[1] * shape[-1]    
+        norm = self.variable('scaler', 'fan-in', fan_in_size, x.shape[1:])
+        return (RELU_SIGMA / norm.value) * super().__call__(x)
+        
+
+class MF_Dense(nn.Dense):
+    @nn.compact
+    def __call__(self, x):
+        fan_in_size = lambda shape: shape[-1]
+        norm = self.variable('scaler', 'fan-in', fan_in_size, x.shape[1:])
+        return (RELU_SIGMA / norm.value) * super().__call__(x)
+
 
 def slice_variables(variables: Mapping[str, Any],
                     start: int = 0,

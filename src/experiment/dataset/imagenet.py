@@ -34,6 +34,13 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
     assert P > 0
     assert val_P > 0
 
+    data_seed = data_params['data_seed']
+    
+    ch.manual_seed(data_seed)
+    key = jr.PRNGKey(data_seed)
+    k1, k2 = jr.split(key)
+    del key
+
     log.info(f'Loading ImageNet-1k dataset from {data_dir}.')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                     std=[0.229, 0.224, 0.225])
@@ -43,6 +50,7 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
     transform_comp = transforms.Compose([
             transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
+            transforms.AutoAugment(transforms.AutoAugmentPolicy.IMAGENET),
             transforms.ToTensor(),
             normalize,
             channels_last_transform])
@@ -56,12 +64,6 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
 
     train_data = ImageNet(data_dir, 'train', transform=transform_comp)
     val_data = ImageNet(data_dir, 'val', transform=val_transform_comp)
-
-    data_seed = data_params['data_seed']
-    
-    key = jr.PRNGKey(data_seed)
-    k1, k2 = jr.split(key)
-    del key
 
     train_indices = jr.choice(k1, len(train_data), (P,), replace=False)
     train_indices = np.array(train_indices)

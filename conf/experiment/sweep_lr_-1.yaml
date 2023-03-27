@@ -5,18 +5,21 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.001
+      eta_0: 100.0
       minibatch_size: 1024
       microbatch_size: 64
       num_workers: 28
-      epochs: 1
+      epochs: 8
       full_batch_gradient: false
+      ensemble_subsets: 1
     model_params:
-      'N': 128
-    seed: 4892
+      'N': 32
+      alpha: 1.0
+      ensemble_size: 36
+    seed: 3442
   data_params:
-    P: 524288
-    data_seed: 1234
+    P: 1048576
+    data_seed: 2423
     root_dir: data-dir
     val_P: 1024
-base_dir: /tmp/5
+base_dir: /tmp/2

@@ -10,13 +10,14 @@ class TrainingParams:
     minibatch_size: int = 1024 # changed
     microbatch_size: int = 64
     num_workers: int = 28
-    epochs: int = 1
+    epochs: int = 8
     full_batch_gradient: bool = False
+    ensemble_subsets: int = 1 # number of subsets of the ensemble to be run synchronously (increase from 1 if out-of-memory during training); divides ensemble_size
 
 
 @dataclass
 class DataParams:
-    P: int = 2 ** 19
+    P: int = 2 ** 20
     # k: int = 0 # no target fn
     # on_device: bool = True
     # random_subset: bool = True
@@ -30,7 +31,8 @@ class ModelParams:
     N: int = 100
     # widths: list[int] = [100] # TODO: added for ensembling within GPU
     # repeat: int = 32 # replicated
-    # alpha: float = 1.0
+    alpha: float = 1.0
+    ensemble_size: int = 1
 
 
 @dataclass

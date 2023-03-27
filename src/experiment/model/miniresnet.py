@@ -70,3 +70,27 @@ class WideResnet(nn.Module):
     x = nn.avg_pool(x, (8, 8))
     x = x.reshape((x.shape[0], -1))
     return self.dense_cls(self.num_classes, kernel_init=self.dense_init)(x)
+  
+
+
+class MF_WideResnet(nn.Module):
+  block_size: int
+  k: int
+  num_classes: int
+  conv_cls: ModuleDef = common.MF_Conv
+  dense_cls: ModuleDef = common.MF_Dense
+  group_cls: ModuleDef = WideResnetGroup
+  conv_init: Callable = nn.initializers.normal(1.0)
+  dense_init: Callable = nn.initializers.normal(1.0)
+
+  @nn.compact
+  def __call__(self, x):
+    conv_cls = partial(self.conv_cls, kernel_init=self.conv_init)
+    
+    x = conv_cls(16, (3, 3), padding='SAME')(x)
+    x = self.group_cls(self.block_size, 16 * self.k, conv_cls)(x)
+    x = self.group_cls(self.block_size, 32 * self.k, conv_cls, (2, 2))(x)
+    x = self.group_cls(self.block_size, 64 * self.k, conv_cls, (2, 2))(x)
+    x = nn.avg_pool(x, (8, 8))
+    x = x.reshape((x.shape[0], -1))
+    return self.dense_cls(self.num_classes, kernel_init=self.dense_init)(x)

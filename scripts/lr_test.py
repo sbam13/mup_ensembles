@@ -12,8 +12,8 @@ SBATCH_DIR = '../sbatch_files'
 
 BASE_DIR = '/tmp/{id}'
 
-CONFIG_NAME = 'sweep_width_{id}.yaml'
-SBATCH_NAME = 'sweep_width_{id}.bat'
+CONFIG_NAME = 'sweep_lr_{id}.yaml'
+SBATCH_NAME = 'sweep_lr_{id}.bat'
 
 # def gen_sweeps(mo_vals, lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int, ngpus: int,
 #             bagging_size: int, seed: int, data_seed: int):
@@ -91,8 +91,8 @@ def clear_folder(folder):
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 if __name__ == '__main__':
-    clear_folder(CONFIG_DIR)
-    clear_folder(SBATCH_DIR)
+    # clear_folder(CONFIG_DIR)
+    # clear_folder(SBATCH_DIR)
     widths = [2 ** i for i in range(2, 10)]
     width_es_map =  {512: 1, 256: 2, 128: 6, 64: 12, 32: 36, 16: 64, 8: 64, 4: 128, 2: 128}
     
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     seed = 3442
     dp = DataParams(data_seed=data_seed)
 
-    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp) for w in widths]
+    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(eta_0=10 ** (-i)), model_params=ModelParams(N=32, ensemble_size=width_es_map[32]), seed=seed)], data_params=dp) for i in range(-4, 0)]
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
 
@@ -109,12 +109,12 @@ if __name__ == '__main__':
     sbatch_save_folder = join(curr_dir, SBATCH_DIR)
 
     for id, strc in enumerate(str_configs):
-        config_fname = CONFIG_NAME.format(id=widths[id])
+        config_fname = CONFIG_NAME.format(id=id - 3)
         config_rel_loc = join(config_save_folder, config_fname)
 
-        sbatch_str = SBATCH_TEMPLATE.format(id=widths[id])
+        sbatch_str = SBATCH_TEMPLATE.format(id=id - 3)
 
-        sbatch_fname = SBATCH_NAME.format(id=widths[id])
+        sbatch_fname = SBATCH_NAME.format(id=id - 3)
         sbatch_rel_loc = join(sbatch_save_folder, sbatch_fname)
 
         with open(config_rel_loc, mode='x') as fi:

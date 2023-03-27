@@ -103,6 +103,7 @@ class ResNet(nn.Module):
   dtype: Any = jnp.float32
   act: Callable = nn.relu
   conv: ModuleDef = nn.Conv
+  alpha: float = 1.0
   kernel_init: Callable = nn.initializers.variance_scaling(2.0, 'fan_in', 'normal')
   bias_init: Callable = nn.initializers.variance_scaling(2.0, 'fan_in', 'normal')
 
@@ -115,7 +116,6 @@ class ResNet(nn.Module):
                    momentum=0.9,
                    epsilon=1e-5,
                    dtype=self.dtype)
-
     x = conv(self.num_filters, (7, 7), (2, 2),
              padding=[(3, 3), (3, 3)],
              kernel_init=self.kernel_init,
@@ -136,7 +136,7 @@ class ResNet(nn.Module):
                            bias_init=self.bias_init)(x)
     x = jnp.mean(x, axis=(1, 2))
     # changed from nn.Dense to MuReadout ------------------
-    x = MuReadout(self.num_classes, dtype=self.dtype)(x)
+    x = MuReadout(self.num_classes, dtype=self.dtype, alpha=self.alpha)(x)
     # -----------------------------------------------------
     x = jnp.asarray(x, self.dtype)
     return x
