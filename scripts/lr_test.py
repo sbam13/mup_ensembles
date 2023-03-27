@@ -100,7 +100,7 @@ if __name__ == '__main__':
     seed = 3442
     dp = DataParams(data_seed=data_seed)
 
-    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(eta_0=10 ** (-i)), model_params=ModelParams(N=32, ensemble_size=width_es_map[32]), seed=seed)], data_params=dp) for i in range(-4, 0)]
+    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(eta_0=10 ** (-i)), model_params=ModelParams(N=32, ensemble_size=width_es_map[32]), seed=seed)], data_params=dp) for i in range(1, 5)]
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
 
@@ -109,12 +109,12 @@ if __name__ == '__main__':
     sbatch_save_folder = join(curr_dir, SBATCH_DIR)
 
     for id, strc in enumerate(str_configs):
-        config_fname = CONFIG_NAME.format(id=id - 3)
+        config_fname = CONFIG_NAME.format(id=id)
         config_rel_loc = join(config_save_folder, config_fname)
 
-        sbatch_str = SBATCH_TEMPLATE.format(id=id - 3)
+        sbatch_str = SBATCH_TEMPLATE.format(id=id)
 
-        sbatch_fname = SBATCH_NAME.format(id=id - 3)
+        sbatch_fname = SBATCH_NAME.format(id=id)
         sbatch_rel_loc = join(sbatch_save_folder, sbatch_fname)
 
         with open(config_rel_loc, mode='x') as fi:

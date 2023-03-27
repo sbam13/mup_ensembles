@@ -13,13 +13,13 @@ hyperparams:
       full_batch_gradient: false
       ensemble_subsets: 1
     model_params:
-      'N': 4
+      'N': 64
       alpha: 1.0
-      ensemble_size: 128
+      ensemble_size: 12
     seed: 3442
   data_params:
     P: 1048576
     data_seed: 2423
     root_dir: data-dir
     val_P: 1024
-base_dir: /tmp/0
+base_dir: /tmp/4

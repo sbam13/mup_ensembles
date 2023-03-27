@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 1000.0
+      eta_0: 0.0001
       minibatch_size: 1024
       microbatch_size: 64
       num_workers: 28
@@ -22,4 +22,4 @@ hyperparams:
     data_seed: 2423
     root_dir: data-dir
     val_P: 1024
-base_dir: /tmp/1
+base_dir: /tmp/3

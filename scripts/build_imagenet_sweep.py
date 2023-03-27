@@ -109,12 +109,12 @@ if __name__ == '__main__':
     sbatch_save_folder = join(curr_dir, SBATCH_DIR)
 
     for id, strc in enumerate(str_configs):
-        config_fname = CONFIG_NAME.format(id=widths[id])
+        config_fname = CONFIG_NAME.format(id=id)
         config_rel_loc = join(config_save_folder, config_fname)
 
-        sbatch_str = SBATCH_TEMPLATE.format(id=widths[id])
+        sbatch_str = SBATCH_TEMPLATE.format(id=id)
 
-        sbatch_fname = SBATCH_NAME.format(id=widths[id])
+        sbatch_fname = SBATCH_NAME.format(id=id)
         sbatch_rel_loc = join(sbatch_save_folder, sbatch_fname)
 
         with open(config_rel_loc, mode='x') as fi:
