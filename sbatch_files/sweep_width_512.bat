@@ -3,11 +3,11 @@
 #SBATCH --job-name=512
 #SBATCH -e /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.err
 #SBATCH -o /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.out
-#SBATCH --time=7-00
+#SBATCH --time=3-00
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256g
-#SBATCH --partition=seas_gpu,gpu
+#SBATCH --partition=kempner
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:nvidia_a100-sxm4-80gb:1
 #SBATCH --requeue

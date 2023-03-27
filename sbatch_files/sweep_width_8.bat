@@ -3,7 +3,7 @@
 #SBATCH --job-name=8
 #SBATCH -e /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.err
 #SBATCH -o /n/home07/ssainathan/workplace/sbatch_out/slurm-%j.out
-#SBATCH --time=7-00
+#SBATCH --time=3-00
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256g
