@@ -4,12 +4,12 @@ from omegaconf import MISSING
 
 @dataclass
 class TrainingParams:
-    eta_0: float = 1e-3
+    eta_0: float = 1e-2
     # momentum: float = 0.9
     # weight_decay: float = 1e-5 # TODO: not implemented; replace with batch_size
     minibatch_size: int = 1024 # changed
     microbatch_size: int = 64
-    num_workers: int = 19
+    num_workers: int = 16
     epochs: int = 8
     full_batch_gradient: bool = False
     ensemble_subsets: int = 1 # number of subsets of the ensemble to be run synchronously (increase from 1 if out-of-memory during training); divides ensemble_size
