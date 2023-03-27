@@ -9,7 +9,7 @@ class TrainingParams:
     # weight_decay: float = 1e-5 # TODO: not implemented; replace with batch_size
     minibatch_size: int = 1024 # changed
     microbatch_size: int = 64
-    num_workers: int = 28
+    num_workers: int = 19
     epochs: int = 8
     full_batch_gradient: bool = False
     ensemble_subsets: int = 1 # number of subsets of the ensemble to be run synchronously (increase from 1 if out-of-memory during training); divides ensemble_size
