@@ -56,7 +56,7 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
         train_loader, X_val, y_val, minibatches: int, batch_size: int = 64, 
-        n_ensemble: int = 32) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+        n_ensemble: int = 32, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     """`vars_0` has shape (n_ensemble, param_dims...) for every leaf value"""
     tranche_size = train_loader.batch_size
     num_batches = tranche_size // batch_size # 0 is sharding dimension
@@ -109,6 +109,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
         return updated_state
 
+    @jit
     def update(state: TrainState, Xtr: chex.ArrayDevice, ytr: chex.ArrayDevice):
         Xtr_sb = Xtr.reshape((num_batches, batch_size, *Xtr.shape[1:]))
         ytr_sb = ytr.reshape((num_batches, batch_size, *ytr.shape[1:]))
@@ -166,8 +167,16 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     info('create checkpointer')
     checkpointer = orbax.checkpoint.PyTreeCheckpointer()
     time_suffix = time.time()
-    ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
-    model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
+
+    if use_checkpoint:
+        info('restore model checkpoint...')
+        # fix model_ckpt_dir to be passed in
+        state = checkpoints.restore_checkpoint(model_ckpt_dir, state, orbax_checkpointer=checkpointer)
+        info('...restored!')
+    else:
+        ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
+        model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
+
 
     def save_stats(step, state, train_x, train_y, val_x, val_y):
         train_preds = glp(state, train_x, train_y)
@@ -292,10 +301,15 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     optimizer = optax.multi_transform(str_flat_opts, label_mapping)
     # ---------------------------------------------------------------------------------------
 
-    # train!
     batch_size = training_params['microbatch_size']
     epochs = training_params['epochs']
 
+    # checkpoint data
+    use_checkpoint = training_params['use_checkpoint']
+    ckpt_dir = training_params['ckpt_dir']
+    model_ckpt_dir = training_params['model_ckpt_dir']
+
+    # train!
     info('entering train function')
     _ = train(vars_0, 
             N,
@@ -305,7 +319,10 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
             *val_data, 
             epochs * 1024, 
             batch_size, 
-            n_ensemble)
+            n_ensemble,
+            use_checkpoint,
+            ckpt_dir,
+            model_ckpt_dir)
 
     return None
 
