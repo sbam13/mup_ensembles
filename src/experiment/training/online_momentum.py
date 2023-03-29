@@ -32,7 +32,7 @@ from functools import partial
 
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
-SPACING_MULTIPLIER = 1.2
+SPACING_MULTIPLIER = 1.3
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
 
 def is_power_of_2(n):
@@ -184,7 +184,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     prev_record_step = 0
 
     if use_checkpoint:
-        model_ckpt_fname = os.listdir(model_ckpt_dir)[:-1]
+        model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
         steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
 
         info('restore model checkpoint...')
