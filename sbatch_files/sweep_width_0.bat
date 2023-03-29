@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256g
-#SBATCH --partition=kempner,seas_gpu,gpu
+#SBATCH --partition=kempner
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:1
 #SBATCH --requeue
