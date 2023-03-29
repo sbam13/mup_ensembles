@@ -17,7 +17,7 @@ import orbax
 import os.path
 import os
 
-import time
+import time, re
 
 from jax.random import split
 # from src.experiment.training.Result import OnlineResult
@@ -32,7 +32,7 @@ from functools import partial
 
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
-SPACING_MULTIPLIER = 1.4
+SPACING_MULTIPLIER = 1.2
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
 
 def is_power_of_2(n):
@@ -56,7 +56,7 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
         train_loader, X_val, y_val, minibatches: int, batch_size: int = 64, 
-        n_ensemble: int = 32, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+        n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     """`vars_0` has shape (n_ensemble, param_dims...) for every leaf value"""
     tranche_size = train_loader.batch_size
     num_batches = tranche_size // batch_size # 0 is sharding dimension
@@ -84,19 +84,11 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
         def step(step_state: TrainState, data: tuple) -> TrainState:
             """Takes an SGD step."""
             # unpack
-            opt_state = step_state.opt_state
             batch, labels = data
 
             # update params
-            # param_shape = tree_map(lambda z: z.shape, params)
-            # data_shape = tree_map(lambda z: z.shape, batch)
             (_, update_bs), grads = loss_grad_fn(step_state.params, step_state.batch_stats, batch, labels)
-            updates, opt_state = step_state.tx.update(grads, opt_state, step_state.params)
-            
-            # apply updates only to mutable params
-            updated_params = optax.apply_updates(step_state.params, updates)
-
-            return step_state.replace(params=updated_params, batch_stats=update_bs, opt_state=opt_state), None
+            return step_state.apply_gradients(grads=grads, batch_stats=update_bs), None
     
 
         # shuffle
@@ -168,16 +160,6 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     checkpointer = orbax.checkpoint.PyTreeCheckpointer()
     time_suffix = time.time()
 
-    if use_checkpoint:
-        info('restore model checkpoint...')
-        # fix model_ckpt_dir to be passed in
-        state = checkpoints.restore_checkpoint(model_ckpt_dir, state, orbax_checkpointer=checkpointer)
-        info('...restored!')
-    else:
-        ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
-        model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
-
-
     def save_stats(step, state, train_x, train_y, val_x, val_y):
         train_preds = glp(state, train_x, train_y)
         val_preds = glp(state, val_x, val_y)
@@ -198,10 +180,28 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     info('...done')
     # -------------------------------------------------------------------------
 
+    steps = 0
+    prev_record_step = 0
+
+    if use_checkpoint:
+        model_ckpt_fname = os.listdir(model_ckpt_dir)[:-1]
+        steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
+
+        info('restore model checkpoint...')
+        # fix model_ckpt_dir to be passed in
+        state = checkpoints.restore_checkpoint(model_ckpt_dir, state, orbax_checkpointer=checkpointer)
+        
+        # hacky, replace in future trials
+        vectorized_steps = steps * jnp.ones((ensemble_subsets, n_ensemble // ensemble_subsets), dtype=jnp.int32)
+        state = state.replace(step=vectorized_steps)
+        info('...restored!')
+    else:
+        ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
+        model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
+
+
     info('Entering training loop...')
     try:
-        steps = 0
-        prev_record_step = 0
         start = time.time()
 
         prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N)
@@ -320,6 +320,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
             epochs * 1024, 
             batch_size, 
             n_ensemble,
+            ensemble_subsets,
             use_checkpoint,
             ckpt_dir,
             model_ckpt_dir)
