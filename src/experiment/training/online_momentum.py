@@ -1,34 +1,29 @@
+import itertools
+import os
+import os.path
+import re
+import time
 from functools import partial
 from logging import info
 
 import chex
-import jax.numpy as jnp
-import optax
 import flax
-
-from flax.training import train_state, checkpoints
-
-from jax import jit, vmap, tree_map, value_and_grad, ShapeDtypeStruct
-from jax.lax import scan
-
 import jax.lax
+import jax.numpy as jnp
+import numpy as np
+import optax
 import orbax
-
-import os.path
-import os
-
-import time, re
-
+from flax.training import checkpoints, train_state
+from jax import ShapeDtypeStruct, jit, tree_map, value_and_grad, vmap
+from jax.lax import scan
 from jax.random import split
-# from src.experiment.training.Result import OnlineResult
-
 from src.experiment.model.mup import ResNet18
 
-from src.experiment.training.prefetch import prefetch_to_device
+# from src.experiment.training.Result import OnlineResult
 
-import numpy as np
 
-from functools import partial
+
+
 
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
@@ -55,7 +50,7 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
 
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
-        train_loader, X_val, y_val, minibatches: int, batch_size: int = 64, 
+        train_loader, X_val, y_val, epochs: int, batch_size: int = 64, 
         n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     """`vars_0` has shape (n_ensemble, param_dims...) for every leaf value"""
     tranche_size = train_loader.batch_size
@@ -179,10 +174,17 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
         return
     info('...done')
     # -------------------------------------------------------------------------
+    # helper to convert dataloader batches to jax
+    def loader_to_jax(batch):
+        x_ch, y_list = batch
+        x_jnp = jnp.array(x_ch)
+        y_jnp = jnp.array(y_list)
+        return x_jnp, y_jnp
+    # -------------------------------------------------------------------------
 
     steps = 0
     prev_record_step = 0
-    prefetch_iter = None
+    data_iter = iter(train_loader)
 
     if use_checkpoint:
         model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
@@ -203,28 +205,29 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
         skip_batches = batches_seen % total_batches
         
         info(f'skip {skip_batches} batches to align across experiments...')
-        prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N, skip_batches)
+        for _ in itertools.islice(data_iter, skip_batches):
+            pass
         info('...done!')
     else:
         ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
         model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
-        prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N)
 
     info('Entering training loop...')
     try:
         start = time.time()
 
-        for _ in range(minibatches):
-            batch = next(prefetch_iter)
-            x, y = batch
-            state = update(state, x, y)
-            steps += num_batches
-            if steps > SPACING_MULTIPLIER * prev_record_step:
-                prev_record_step = steps
-                save_stats(steps, state, x, y, X_val, y_val)
-                info(f'step {steps}: elapsed time {time.time() - start}')
-                if steps > 7_500: # 480_000 data points seen
-                    checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
+        for _ in range(epochs):
+            for batch in map(loader_to_jax, data_iter):
+                x, y = batch
+                state = update(state, x, y)
+                steps += num_batches
+                if steps > SPACING_MULTIPLIER * prev_record_step:
+                    prev_record_step = steps
+                    save_stats(steps, state, x, y, X_val, y_val)
+                    info(f'step {steps}: elapsed time {time.time() - start}')
+                    if steps > 5_000: # 320_000 data points seen
+                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
+            data_iter = iter(train_loader)
     finally:
         cleanup_save_stats(steps, state, X_val, y_val)
         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
@@ -326,7 +329,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
             optimizer, 
             train_loader, 
             *val_data, 
-            epochs * 1024, 
+            epochs, 
             batch_size, 
             n_ensemble,
             ensemble_subsets,
