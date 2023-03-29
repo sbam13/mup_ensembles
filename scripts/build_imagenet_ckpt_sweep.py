@@ -107,7 +107,7 @@ def get_tp(model_ckpt_dir):
 
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
-    # clear_folder(SBATCH_DIR)
+    clear_folder(SBATCH_DIR)
 
     data_seed = 2423
     seed = 3442
@@ -173,6 +173,6 @@ if __name__ == '__main__':
 
         with open(config_rel_loc, mode='x') as fi:
             fi.write(strc) # TODO: add file exists exception handler + clean up
-        # with open(sbatch_rel_loc, mode='x') as fi:
-        #     fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
+        with open(sbatch_rel_loc, mode='x') as fi:
+            fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
 
