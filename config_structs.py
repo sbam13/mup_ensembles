@@ -15,7 +15,7 @@ class TrainingParams:
     ensemble_subsets: int = 1 # number of subsets of the ensemble to be run synchronously (increase from 1 if out-of-memory during training); divides ensemble_size
     use_checkpoint: bool = False
     ckpt_dir: str = ''
-    model_ckpt_dir = ''
+    model_ckpt_dir: str = ''
 
 
 @dataclass
