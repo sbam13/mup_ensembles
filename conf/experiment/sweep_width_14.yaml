@@ -13,8 +13,8 @@ hyperparams:
       full_batch_gradient: false
       ensemble_subsets: 1
       use_checkpoint: true
-      ckpt_dir: ens_6_width_128_1679953900.619
-      model_ckpt_dir: ens_6_width_128_train_state_1679953900.619
+      ckpt_dir: /n/pehlevan_lab/Users/sab/ensemble_compute_data/ens_6_width_128_1679953900.619
+      model_ckpt_dir: /n/pehlevan_lab/Users/sab/ensemble_compute_data/ens_6_width_128_train_state_1679953900.619
     model_params:
       'N': 128
       alpha: 1.0

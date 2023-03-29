@@ -15,6 +15,9 @@ BASE_DIR = '/tmp/{id}'
 CONFIG_NAME = 'sweep_width_{id}.yaml'
 SBATCH_NAME = 'sweep_width_{id}.bat'
 
+BASE_CKPT_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data/'
+
+
 # def gen_sweeps(mo_vals, lr_vals, alpha_vals, N_vals, P_vals, ensemble_size: int, ngpus: int,
 #             bagging_size: int, seed: int, data_seed: int):
 #     k = jr.PRNGKey(seed)
@@ -100,11 +103,11 @@ def get_ckpt(model_ckpt):
 
 def get_tp(model_ckpt_dir):
     ckpt_dir = get_ckpt(model_ckpt_dir)
-    return TrainingParams(use_checkpoint=True, ckpt_dir=ckpt_dir, model_ckpt_dir=model_ckpt_dir)
+    return TrainingParams(use_checkpoint=True, ckpt_dir=os.path.join(BASE_CKPT_DIR, ckpt_dir), model_ckpt_dir=os.path.join(BASE_CKPT_DIR, model_ckpt_dir))
 
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
-    clear_folder(SBATCH_DIR)
+    # clear_folder(SBATCH_DIR)
 
     data_seed = 2423
     seed = 3442
@@ -170,6 +173,6 @@ if __name__ == '__main__':
 
         with open(config_rel_loc, mode='x') as fi:
             fi.write(strc) # TODO: add file exists exception handler + clean up
-        with open(sbatch_rel_loc, mode='x') as fi:
-            fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
+        # with open(sbatch_rel_loc, mode='x') as fi:
+        #     fi.write(sbatch_str) # TODO: add file exists exception handler + clean up
 
