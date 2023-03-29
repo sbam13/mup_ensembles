@@ -185,7 +185,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
     if use_checkpoint:
         model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
-        steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
+        prev_record_step = steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
 
         info('restore model checkpoint...')
         # fix model_ckpt_dir to be passed in
