@@ -182,6 +182,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
     steps = 0
     prev_record_step = 0
+    prefetch_iter = None
 
     if use_checkpoint:
         model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
@@ -195,16 +196,24 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
         vectorized_steps = steps * jnp.ones((ensemble_subsets, n_ensemble // ensemble_subsets), dtype=jnp.int32)
         state = state.replace(step=vectorized_steps)
         info('...restored!')
+
+        # skip seen batches to align across experiments
+        batches_seen = steps // num_batches # num_batches is minibatch_size // microbatch_size
+        total_batches = len(train_loader)
+        skip_batches = batches_seen % total_batches
+        
+        info(f'skip {skip_batches} batches to align across experiments...')
+        prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N, skip_batches)
+        info('...done!')
     else:
         ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
         model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
-
+        prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N)
 
     info('Entering training loop...')
     try:
         start = time.time()
 
-        prefetch_iter = prefetch_to_device(train_loader, PREFETCH_N)
         for _ in range(minibatches):
             batch = next(prefetch_iter)
             x, y = batch

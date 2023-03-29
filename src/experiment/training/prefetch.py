@@ -14,7 +14,7 @@ import itertools
 #   else:
 #     return jax.local_devices()
 
-def prefetch_to_device(iterator, size):
+def prefetch_to_device(iterator, size, skip: int = 0):
   """Shard and prefetch batches on device.
 
   This utility takes an iterator and returns a new iterator which fills an on
@@ -56,6 +56,10 @@ def prefetch_to_device(iterator, size):
       x_jnp = jnp.array(x_ch)
       y_jnp = jnp.array(y_list)
       queue.append(jax.device_put((x_jnp, y_jnp)))
+
+  # skip the first `skip` batches
+  for _ in itertools.islice(iterator, skip):
+    pass
 
   enqueue(size)  # Fill up the buffer.
   while queue:
