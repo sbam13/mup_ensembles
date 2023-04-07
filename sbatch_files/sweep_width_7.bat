@@ -7,9 +7,9 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256g
-#SBATCH --partition=kempner
+#SBATCH --partition=seas_gpu
 #SBATCH --ntasks=1       
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:nvidia_a100-sxm4-80gb:1
 #SBATCH --requeue
 
 module load cuda/11.7.1-fasrc01 cudnn/8.5.0.96_cuda11-fasrc01 Anaconda3/2020.11

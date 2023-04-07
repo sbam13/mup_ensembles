@@ -12,13 +12,13 @@ hyperparams:
       epochs: 50
       full_batch_gradient: false
       ensemble_subsets: 1
-      use_checkpoint: true
-      ckpt_dir: /n/pehlevan_lab/Users/sab/ensemble_compute_data/ens_2_width_256_1679954032.606
-      model_ckpt_dir: /n/pehlevan_lab/Users/sab/ensemble_compute_data/ens_2_width_256_train_state_1679954032.606
+      use_checkpoint: false
+      ckpt_dir: ''
+      model_ckpt_dir: ''
     model_params:
-      'N': 256
+      'N': 64
       alpha: 1.0
-      ensemble_size: 2
+      ensemble_size: 12
     seed: 3442
   data_params:
     P: 1048576

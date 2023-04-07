@@ -27,7 +27,7 @@ from src.experiment.model.mup import ResNet18
 
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
-SPACING_MULTIPLIER = 1.3
+SPACING_MULTIPLIER = 1.25
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
 
 def is_power_of_2(n):
@@ -277,6 +277,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
 
     # create optimizer ----------------------------------------------------------------------
     eta_0 = training_params['eta_0']
+    eta_0 = eta_0 / alpha
 
     def flattened_traversal(fn):
         """Returns function that is called with `(path, param)` instead of pytree."""
@@ -302,9 +303,9 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     # fix multiplier
     flat_opts[('MuReadout_0', 'multiplier')] = optax.set_to_zero()
 
-    # scale readout learning rates by 1/alpha
-    flat_opts[('MuReadout_0', 'kernel')] = optax.adam(eta_0 / alpha)
-    flat_opts[('MuReadout_0', 'bias')] = optax.adam(eta_0 / alpha)
+    # scale readout learning rates by 1/alpha (hacky)
+    flat_opts[('MuReadout_0', 'kernel')] = optax.adam(eta_0)
+    flat_opts[('MuReadout_0', 'bias')] = optax.adam(eta_0)
 
     str_flat_opts = {str.join(' -- ', k): v for k, v in flat_opts.items()}
 
