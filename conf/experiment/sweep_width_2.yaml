@@ -16,9 +16,9 @@ hyperparams:
       ckpt_dir: ''
       model_ckpt_dir: ''
     model_params:
-      'N': 16
-      alpha: 1.0
-      ensemble_size: 64
+      'N': 64
+      alpha: 0.125
+      ensemble_size: 6
     seed: 3442
   data_params:
     P: 1048576
