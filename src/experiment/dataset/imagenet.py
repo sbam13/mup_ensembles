@@ -63,7 +63,9 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
         channels_last_transform])
 
     train_data = ImageNet(data_dir, 'train', transform=transform_comp)
-    val_data = ImageNet(data_dir, 'val', transform=val_transform_comp)
+    # val_data = ImageNet(data_dir, 'val', transform=val_transform_comp)
+    val_data = ImageNet(data_dir, 'val', transform=transform_comp)
+
 
     train_indices = jr.choice(k1, len(train_data), (P,), replace=False)
     train_indices = np.array(train_indices)

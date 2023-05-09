@@ -28,7 +28,8 @@ from src.experiment.model.mup import ResNet18
 NUM_CLASSES = 1_000
 PREFETCH_N = 2
 SPACING_MULTIPLIER = 1.25
-BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
+# BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
+BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_tests'
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
@@ -155,21 +156,21 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     checkpointer = orbax.checkpoint.PyTreeCheckpointer()
     time_suffix = time.time()
 
-    def save_stats(step, state, train_x, train_y, val_x, val_y):
+    def save_stats(state, train_x, train_y, val_x, val_y):
         train_preds = glp(state, train_x, train_y)
         val_preds = glp(state, val_x, val_y)
         layer_norms = gln(state)
         ckpt = {'train': train_preds, 'val': val_preds, 'layer_norms': layer_norms}
         checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
-                                step=step, overwrite=False, keep=1000,
+                                step=state.step, overwrite=False, keep=1000,
                                 orbax_checkpointer=checkpointer)
         return
 
-    def cleanup_save_stats(step, state, val_x, val_y):
+    def cleanup_save_stats(state, val_x, val_y):
         val_preds = glp(state, val_x, val_y)
         ckpt = {'val': val_preds}
         checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
-                                step=step, overwrite=False, keep=1000,
+                                step=state.step, overwrite=False, keep=1000,
                                 orbax_checkpointer=checkpointer)
         return
     info('...done')
@@ -183,6 +184,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     # -------------------------------------------------------------------------
 
     steps = 0
+    num_batch = 0
     prev_record_step = 0
     data_iter = iter(train_loader)
 
@@ -219,14 +221,14 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
         for _ in range(epochs):
             for batch in map(loader_to_jax, data_iter):
                 x, y = batch
-                state = update(state, x, y)
-                steps += num_batches
                 if steps > SPACING_MULTIPLIER * prev_record_step:
                     prev_record_step = steps
                     save_stats(steps, state, x, y, X_val, y_val)
                     info(f'step {steps}: elapsed time {time.time() - start}')
-                    if steps > 5_000: # 320_000 data points seen
+                    if steps > 5_000:
                         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
+                state = update(state, x, y)
+                steps += num_batches
             data_iter = iter(train_loader)
     finally:
         cleanup_save_stats(steps, state, X_val, y_val)
