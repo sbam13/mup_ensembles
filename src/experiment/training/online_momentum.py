@@ -51,7 +51,7 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
 
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
-        train_loader, X_val, y_val, epochs: int, batch_size: int = 64, 
+        train_loader, val_loader, epochs: int, batch_size: int = 64, 
         n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     """`vars_0` has shape (n_ensemble, param_dims...) for every leaf value"""
     tranche_size = train_loader.batch_size
@@ -186,6 +186,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     steps = 0
     prev_record_step = 0
     data_iter = iter(train_loader)
+    val_data_iter = map(loader_to_jax, iter(val_loader))
 
     if use_checkpoint:
         model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
@@ -222,15 +223,19 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
                 x, y = batch
                 if steps > SPACING_MULTIPLIER * prev_record_step:
                     prev_record_step = steps
-                    save_stats(state, x, y, X_val, y_val)
+                    save_stats(state, x, y, *next(val_data_iter))
                     info(f'step {steps}: elapsed time {time.time() - start}')
+                    val_data_iter = map(loader_to_jax, iter(val_loader))
                     if steps > 5_000:
                         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
                 state = update(state, x, y)
                 steps += num_batches
             data_iter = iter(train_loader)
     finally:
-        cleanup_save_stats(state, X_val, y_val)
+        try:
+            cleanup_save_stats(state, *next(val_data_iter))
+        except StopIteration:
+            pass
         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
 
     info('...exiting loop.')
@@ -254,7 +259,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 #     else:
 #         return div
 
-def apply(key, train_loader, val_data, devices, model_params, training_params):
+def apply(key, train_loader, val_loader, devices, model_params, training_params):
     # get sharded keys
     # n_ensemble = model_params['repeat']
     n_ensemble = model_params['ensemble_size']
@@ -330,7 +335,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
             alpha,
             optimizer, 
             train_loader, 
-            *val_data, 
+            val_loader, 
             epochs, 
             batch_size, 
             n_ensemble,
