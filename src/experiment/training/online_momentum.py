@@ -184,7 +184,6 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     # -------------------------------------------------------------------------
 
     steps = 0
-    num_batch = 0
     prev_record_step = 0
     data_iter = iter(train_loader)
 
@@ -223,7 +222,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
                 x, y = batch
                 if steps > SPACING_MULTIPLIER * prev_record_step:
                     prev_record_step = steps
-                    save_stats(steps, state, x, y, X_val, y_val)
+                    save_stats(state, x, y, X_val, y_val)
                     info(f'step {steps}: elapsed time {time.time() - start}')
                     if steps > 5_000:
                         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
@@ -231,7 +230,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
                 steps += num_batches
             data_iter = iter(train_loader)
     finally:
-        cleanup_save_stats(steps, state, X_val, y_val)
+        cleanup_save_stats(state, X_val, y_val)
         checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
 
     info('...exiting loop.')
