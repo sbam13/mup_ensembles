@@ -35,7 +35,7 @@ class OnlinePreprocessDevice(ABC):
         NUM_WORKERS = 4
         vd_batch_size = len_vd // NUM_WORKERS
         vd_loader = DataLoader(vd, num_workers=NUM_WORKERS)
-        
+
         divisible_len_vd = vd_batch_size * NUM_WORKERS
         images = ch.zeros((divisible_len_vd, 224, 224, 3), dtype=ch.float32)
         labels = []
@@ -64,7 +64,8 @@ class OnlinePreprocessDevice(ABC):
         self.train_dataset = td
 
         logging.info('Reading validation data:')
-        self._prep_vd(vd)
+        # self._prep_vd(vd)
+        self.val_data = vd
         logging.info(f'Put validation data onto device.')
         # else: # no loading onto device
         #     self.val_data = (jnp_images, jnp_labels)
