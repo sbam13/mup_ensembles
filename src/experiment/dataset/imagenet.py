@@ -64,7 +64,7 @@ def load_imagenet_data(data_dir: str, data_params: Mapping) -> tuple[ch.utils.da
 
     train_data = ImageNet(data_dir, 'train', transform=transform_comp)
     # val_data = ImageNet(data_dir, 'val', transform=val_transform_comp)
-    val_data = ImageNet(data_dir, 'val', transform=transform_comp)
+    val_data = ImageNet(data_dir, 'val', transform=val_transform_comp)
 
 
     train_indices = jr.choice(k1, len(train_data), (P,), replace=False)

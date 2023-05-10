@@ -34,7 +34,7 @@ BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_tests'
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
 
-def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int, param_dtype=jnp.float32):
+def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int, param_dtype):
     model = ResNet18(num_classes=1000, num_filters=N, alpha=alpha, param_dtype=param_dtype)
     IMAGENET_SHAPE = (224, 224, 3)
     dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE) # added batch index
@@ -136,7 +136,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
     get_layer_norms = lambda ind_state: tree_map(lambda z: jnp.linalg.norm(z), ind_state.params)
     # -------------------------------------------------------------------------
-    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, alpha=alpha)
+    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, alpha=alpha, param_dtype=data_dtype)
 
     def create_train_state(params, tx, bs):
         return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs)
@@ -309,39 +309,41 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     eta_0 = training_params['eta_0']
     eta_0 = eta_0 / alpha
 
-    def flattened_traversal(fn):
-        """Returns function that is called with `(path, param)` instead of pytree."""
-        def mask(tree):
-            flat = flax.traverse_util.flatten_dict(tree)
-            return flax.traverse_util.unflatten_dict(
-                {k: fn(k, v) for k, v in flat.items()})
-        return mask
+    optimizer = optax.adam(eta_0)
 
-    def assign_lr(k, v):
-        layer_name = k[-2]
-        if layer_name.startswith('Conv'):
-            return eta_0 / np.prod(v.shape[:-1])
-        else:
-            return eta_0
+    # def flattened_traversal(fn):
+    #     """Returns function that is called with `(path, param)` instead of pytree."""
+    #     def mask(tree):
+    #         flat = flax.traverse_util.flatten_dict(tree)
+    #         return flax.traverse_util.unflatten_dict(
+    #             {k: fn(k, v) for k, v in flat.items()})
+    #     return mask
 
-    lr_fn = flattened_traversal(assign_lr)
-    lrs = lr_fn(vars_0['params'])
+    # def assign_lr(k, v):
+    #     layer_name = k[-2]
+    #     if layer_name.startswith('Conv'):
+    #         return eta_0 / np.prod(v.shape[:-1])
+    #     else:
+    #         return eta_0
+
+    # lr_fn = flattened_traversal(assign_lr)
+    # lrs = lr_fn(vars_0['params'])
     
-    opts = jax.tree_map(lambda lr: optax.adam(lr), lrs)
-    flat_opts = flax.traverse_util.flatten_dict(opts)
+    # opts = jax.tree_map(lambda lr: optax.adam(lr), lrs)
+    # flat_opts = flax.traverse_util.flatten_dict(opts)
     
-    # fix multiplier
-    flat_opts[('MuReadout_0', 'multiplier')] = optax.set_to_zero()
+    # # fix multiplier
+    # flat_opts[('MuReadout_0', 'multiplier')] = optax.set_to_zero()
 
-    # scale readout learning rates by 1/alpha (hacky)
-    flat_opts[('MuReadout_0', 'kernel')] = optax.adam(eta_0)
-    flat_opts[('MuReadout_0', 'bias')] = optax.adam(eta_0)
+    # # scale readout learning rates by 1/alpha (hacky)
+    # flat_opts[('MuReadout_0', 'kernel')] = optax.adam(eta_0)
+    # flat_opts[('MuReadout_0', 'bias')] = optax.adam(eta_0)
 
-    str_flat_opts = {str.join(' -- ', k): v for k, v in flat_opts.items()}
+    # str_flat_opts = {str.join(' -- ', k): v for k, v in flat_opts.items()}
 
-    label_mapping = flattened_traversal(lambda k, _: str.join(' -- ', k))(vars_0['params'])
+    # label_mapping = flattened_traversal(lambda k, _: str.join(' -- ', k))(vars_0['params'])
 
-    optimizer = optax.multi_transform(str_flat_opts, label_mapping)
+    # optimizer = optax.multi_transform(str_flat_opts, label_mapping)
     # ---------------------------------------------------------------------------------------
 
     batch_size = training_params['microbatch_size']

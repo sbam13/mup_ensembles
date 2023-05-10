@@ -100,7 +100,7 @@ if __name__ == '__main__':
     seed = 3442
     dp = DataParams(data_seed=data_seed)
 
-    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=256), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp) for w in widths]
+    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=512), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp) for w in widths]
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
 

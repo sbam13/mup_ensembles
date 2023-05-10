@@ -7,7 +7,7 @@ hyperparams:
   - training_params:
       eta_0: 0.01
       minibatch_size: 1024
-      microbatch_size: 256
+      microbatch_size: 512
       num_workers: 24
       epochs: 50
       full_batch_gradient: false
