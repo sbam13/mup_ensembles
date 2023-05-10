@@ -56,7 +56,7 @@ def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
     return ws
 
 
-def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
+def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformation, 
         train_loader, val_data, epochs: int, batch_size: int = 64, 
         n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '',
         data_dtype: Any = jnp.float32) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
@@ -142,7 +142,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
     get_layer_norms = lambda ind_state: tree_map(lambda z: jnp.linalg.norm(z), ind_state.params)
     # -------------------------------------------------------------------------
-    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, alpha=alpha, param_dtype=data_dtype)
+    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=data_dtype)
 
     def create_train_state(params, tx, bs):
         return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs)
@@ -382,7 +382,6 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     info('entering train function')
     _ = train(vars_0, 
             N,
-            alpha,
             optimizer, 
             train_loader, 
             val_data, 
