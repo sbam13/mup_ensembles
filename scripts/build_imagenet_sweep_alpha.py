@@ -93,14 +93,14 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    widths = [128]
-    width_es_map =  {128:1}
+    widths = [64, 128, 256]
+    width_es_map =  {w: 1 for w in widths}
     
     data_seed = 2423
     seed = 3442
     dp = DataParams(data_seed=data_seed)
 
-    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=512), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp) for w in widths]
+    tlcs = [TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=512, eta_0=1e-3), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp) for w in widths]
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
 

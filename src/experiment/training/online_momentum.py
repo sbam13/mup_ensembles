@@ -18,15 +18,16 @@ from flax.training import checkpoints, train_state
 from jax import ShapeDtypeStruct, jit, tree_map, value_and_grad, vmap
 from jax.lax import scan
 from jax.random import split
-from src.experiment.model.mup import ResNet18
+
+from src.experiment.model.flax_mup.resnet import ResNet18
+from src.experiment.model.flax_mup.mup import Mup
 
 # from src.experiment.training.Result import OnlineResult
 
 
 
-
-
 NUM_CLASSES = 1_000
+IMAGENET_SHAPE = (224, 224, 3)
 
 # BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_tests'
@@ -34,12 +35,17 @@ BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_tests'
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
 
-def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int, param_dtype):
-    model = ResNet18(num_classes=1000, num_filters=N, alpha=alpha, param_dtype=param_dtype)
-    IMAGENET_SHAPE = (224, 224, 3)
-    dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE) # added batch index
+def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
+    model = ResNet18(num_classes=1000, num_filters=N, param_dtype=param_dtype)
+    dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=param_dtype) # added batch index
+
+    # train_init = partial(model.init, train=True)
+    wp = mup._width_mults
+    rzi = mup.readout_zero_init
     
-    train_init = partial(model.init, train=True)
+    def train_init(key, inp):
+        vars_ = model.init(key, inp, train=True)
+        return dict(mup.rescale_parameters({'params': vars_['params'].unfreeze()}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
     
     within_subset_size = keys.shape[0] // num_ensemble_subsets
     sub_keys = keys.reshape((num_ensemble_subsets, within_subset_size, 2))
@@ -47,7 +53,7 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int, param_dtyp
     ensemble_get_params = vmap(vmap(train_init, in_axes=(0, None), axis_name='within_subset'), in_axes=(0, None), axis_name='over_subsets')
     fn = jit(ensemble_get_params).lower(ShapeDtypeStruct(sub_keys.shape, jnp.uint32), ShapeDtypeStruct(dummy_input.shape, jnp.float32)).compile()
     ws = fn(sub_keys, dummy_input)
-    return {'params': ws['params'].unfreeze(), 'batch_stats': ws['batch_stats']}
+    return ws
 
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
@@ -288,28 +294,46 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     ensemble_subsets = training_params['ensemble_subsets']
     assert ensemble_subsets > 0 and n_ensemble % ensemble_subsets == 0
 
+    BASE_N = model_params['BASE_N']
     N = model_params['N']
     assert N > 0
+
+    try:
+        dtype = jnp.dtype(model_params['dtype'])
+    except TypeError:
+        raise ValueError('`model_params.param_dtype` must be a valid jax dtype')
+
+    # -------------------------------------------------------------------------
+    # set up muP
+
+    mup = Mup()
+
+    init_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=dtype)
+    base_model = ResNet18(num_classes=NUM_CLASSES, num_filters=BASE_N, param_dtype=dtype)
+    vars_ = base_model.init(jax.random.PRNGKey(0), init_input)
+    mup.set_base_shapes({'params': vars_['params'].unfreeze(), 'batch_stats': vars_['batch_stats']})
+    
+    target_model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=dtype)
+    vars_target = target_model.init(jax.random.PRNGKey(0), init_input)
+    mup.set_target_shapes({'params': vars_target['params'].unfreeze(), 'batch_stats': vars_target['batch_stats']})
+    del vars_, vars_target, base_model, target_model, init_input
+    # -------------------------------------------------------------------------
 
     # initialize!
     # key, subsample_key = split(key)
     init_keys = split(key, num=n_ensemble)
     del key
 
-    alpha = model_params['alpha']
-    try:
-        dtype = jnp.dtype(model_params['dtype'])
-    except TypeError:
-        raise ValueError('`model_params.param_dtype` must be a valid jax dtype')
-    vars_0 = initialize(init_keys, N, alpha, ensemble_subsets, dtype) # shape: (n_ensemble // div, div, param dims)
+    # alpha = model_params['alpha']
+    vars_0 = initialize(init_keys, N, ensemble_subsets, mup, dtype) # shape: (n_ensemble // div, div, param dims)
     # NUM_VMAP_DIMENSIONS = 2
     info('initialized parameters!')
 
     # create optimizer ----------------------------------------------------------------------
     eta_0 = training_params['eta_0']
-    eta_0 = eta_0 / alpha
+    eta_0 = eta_0
 
-    optimizer = optax.adam(eta_0)
+    optimizer = mup.wrap_optimizer(optax.adam(eta_0), adam=True)
 
     # def flattened_traversal(fn):
     #     """Returns function that is called with `(path, param)` instead of pytree."""

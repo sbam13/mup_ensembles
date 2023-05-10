@@ -17,7 +17,7 @@ hyperparams:
       model_ckpt_dir: ''
     model_params:
       BASE_N: 64
-      'N': 64
+      'N': 128
       alpha: 1.0
       ensemble_size: 1
       dtype: bfloat16
@@ -27,4 +27,4 @@ hyperparams:
     data_seed: 2423
     root_dir: data-dir
     val_P: 1024
-base_dir: /tmp/0
+base_dir: /tmp/1

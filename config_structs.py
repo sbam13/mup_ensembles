@@ -31,7 +31,8 @@ class DataParams:
 
 @dataclass
 class ModelParams:
-    N: int = 100
+    BASE_N: int = 64
+    N: int = 128
     # widths: list[int] = [100] # TODO: added for ensembling within GPU
     # repeat: int = 32 # replicated
     alpha: float = 1.0
