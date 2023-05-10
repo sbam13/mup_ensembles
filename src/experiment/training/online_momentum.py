@@ -45,7 +45,7 @@ def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
     
     def train_init(key, inp):
         vars_ = model.init(key, inp, train=True)
-        return dict(mup.rescale_parameters({'params': vars_['params'].unfreeze()}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
+        return dict(mup.rescale_parameters({'params': vars_['params']}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
     
     within_subset_size = keys.shape[0] // num_ensemble_subsets
     sub_keys = keys.reshape((num_ensemble_subsets, within_subset_size, 2))
@@ -311,11 +311,11 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     init_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=dtype)
     base_model = ResNet18(num_classes=NUM_CLASSES, num_filters=BASE_N, param_dtype=dtype)
     vars_ = base_model.init(jax.random.PRNGKey(0), init_input)
-    mup.set_base_shapes({'params': vars_['params'].unfreeze()})
-    
+    mup.set_base_shapes({'params': vars_['params']})
+
     target_model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=dtype)
     vars_target = target_model.init(jax.random.PRNGKey(0), init_input)
-    mup.set_target_shapes({'params': vars_target['params'].unfreeze()})
+    mup.set_target_shapes({'params': vars_target['params']})
     del vars_, vars_target, base_model, target_model, init_input
     # -------------------------------------------------------------------------
 
