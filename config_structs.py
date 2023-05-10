@@ -35,7 +35,6 @@ class ModelParams:
     N: int = 128
     # widths: list[int] = [100] # TODO: added for ensembling within GPU
     # repeat: int = 32 # replicated
-    alpha: float = 1.0
     ensemble_size: int = 1
     dtype: str = 'bfloat16'
 
