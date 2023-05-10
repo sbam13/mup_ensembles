@@ -49,14 +49,13 @@ class OnlineTaskRunner:
         minibatch_size = tp['minibatch_size']
         num_workers = tp['num_workers']
         train_loader = DataLoader(train_data, minibatch_size, num_workers=num_workers, drop_last=True, persistent_workers=True, shuffle=True)
-        val_loader = DataLoader(val_data, minibatch_size, num_workers=1, drop_last=True, persistent_workers=True, shuffle=False)
         # HACKY: do not use in production ^
         # for batch in range(0, iters):
         #     batch_widths = widths[batch*num_devices:(batch + 1)*num_devices]
 
         #     key = iter_keys[batch]
             # data is replicated across devices, everything else is not
-        _ = apply(key, train_loader, val_loader, devices, mp, tp)
+        _ = apply(key, train_loader, val_data, devices, mp, tp)
 
         # idx = batch * num_devices
         # for replica, result in enumerate(batch_results):

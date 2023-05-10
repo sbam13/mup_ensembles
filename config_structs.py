@@ -36,6 +36,7 @@ class ModelParams:
     # repeat: int = 32 # replicated
     alpha: float = 1.0
     ensemble_size: int = 1
+    dtype: str = 'bfloat16'
 
 
 @dataclass

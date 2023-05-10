@@ -5,6 +5,7 @@ import re
 import time
 from functools import partial
 from logging import info
+from typing import Any
 
 import chex
 import flax
@@ -26,16 +27,15 @@ from src.experiment.model.mup import ResNet18
 
 
 NUM_CLASSES = 1_000
-PREFETCH_N = 2
-SPACING_MULTIPLIER = 1.25
+
 # BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
 BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_tests'
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
 
-def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
-    model = ResNet18(num_classes=1000, num_filters=N, alpha=alpha)
+def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int, param_dtype=jnp.float32):
+    model = ResNet18(num_classes=1000, num_filters=N, alpha=alpha, param_dtype=param_dtype)
     IMAGENET_SHAPE = (224, 224, 3)
     dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE) # added batch index
     
@@ -51,8 +51,9 @@ def initialize(keys, N: int, alpha: float, num_ensemble_subsets: int):
 
 
 def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.GradientTransformation, 
-        train_loader, val_loader, epochs: int, batch_size: int = 64, 
-        n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '') -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
+        train_loader, val_data, epochs: int, batch_size: int = 64, 
+        n_ensemble: int = 32, ensemble_subsets: int = 1, use_checkpoint: bool = False, ckpt_dir: str = '', model_ckpt_dir: str = '',
+        data_dtype: Any = jnp.float32) -> tuple[chex.ArrayTree, list[chex.ArraySharded]]:
     """`vars_0` has shape (n_ensemble, param_dims...) for every leaf value"""
     tranche_size = train_loader.batch_size
     num_batches = tranche_size // batch_size # 0 is sharding dimension
@@ -148,7 +149,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 
     # training loop
     state = init_step_state
-    glp = jit(get_preds).lower(init_step_state, jax.ShapeDtypeStruct((tranche_size, 224, 224, 3), jnp.dtype('float32')), jax.ShapeDtypeStruct((tranche_size,), jnp.dtype('int32'))).compile()
+    glp = jit(get_preds).lower(init_step_state, jax.ShapeDtypeStruct((tranche_size, 224, 224, 3), data_dtype), jax.ShapeDtypeStruct((tranche_size,), jnp.dtype('int32'))).compile()
     gln = jit(vmap(vmap(get_layer_norms)))
     # -------------------------------------------------------------------------
     # create checkpointer
@@ -178,65 +179,84 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
     # helper to convert dataloader batches to jax
     def loader_to_jax(batch):
         x_ch, y_list = batch
-        x_jnp = jnp.array(x_ch)
+        x_jnp = jnp.array(x_ch, dtype=data_dtype)
         y_jnp = jnp.array(y_list)
         return x_jnp, y_jnp
     # -------------------------------------------------------------------------
+    jax_val_data = loader_to_jax(val_data)
+    # -------------------------------------------------------------------------
+    # if use_checkpoint:
+    #     model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
+    #     prev_record_step = steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
 
-    steps = 0
-    prev_record_step = 0
-    data_iter = iter(train_loader)
-    val_data_iter = map(loader_to_jax, iter(val_loader))
-
-    if use_checkpoint:
-        model_ckpt_fname = os.listdir(model_ckpt_dir)[-1]
-        prev_record_step = steps = int(re.findall(r'\d+', model_ckpt_fname)[0])
-
-        info('restore model checkpoint...')
-        # fix model_ckpt_dir to be passed in
-        state = checkpoints.restore_checkpoint(model_ckpt_dir, state, orbax_checkpointer=checkpointer)
+    #     info('restore model checkpoint...')
+    #     # fix model_ckpt_dir to be passed in
+    #     state = checkpoints.restore_checkpoint(model_ckpt_dir, state, orbax_checkpointer=checkpointer)
         
-        # hacky, replace in future trials
-        vectorized_steps = steps * jnp.ones((ensemble_subsets, n_ensemble // ensemble_subsets), dtype=jnp.int32)
-        state = state.replace(step=vectorized_steps)
-        info('...restored!')
+    #     # hacky, replace in future trials
+    #     vectorized_steps = steps * jnp.ones((ensemble_subsets, n_ensemble // ensemble_subsets), dtype=jnp.int32)
+    #     state = state.replace(step=vectorized_steps)
+    #     info('...restored!')
 
-        # skip seen batches to align across experiments
-        batches_seen = steps // num_batches # num_batches is minibatch_size // microbatch_size
-        total_batches = len(train_loader)
-        skip_batches = batches_seen % total_batches
+    #     # skip seen batches to align across experiments
+    #     batches_seen = steps // num_batches # num_batches is minibatch_size // microbatch_size
+    #     total_batches = len(train_loader)
+    #     skip_batches = batches_seen % total_batches
         
-        info(f'skip {skip_batches} batches to align across experiments...')
-        for _ in itertools.islice(data_iter, skip_batches):
-            pass
-        info('...done!')
-    else:
-        ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
-        model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
+    #     info(f'skip {skip_batches} batches to align across experiments...')
+    #     for _ in itertools.islice(data_iter, skip_batches):
+    #         pass
+    #     info('...done!')
+    # else:
+    ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_{time_suffix:.3f}')
+    model_ckpt_dir = os.path.join(BASE_SAVE_DIR, f'ens_{n_ensemble}_width_{N}_train_state_{time_suffix:.3f}')
+
+    # -------------------------------------------------------------------------
+    def exp_scale(start, stop, exponent):
+        ret = [start]
+        while ret[-1] < stop:
+            ret.append(int(np.ceil(ret[-1] * exponent)))
+        return frozenset([0] + ret[:-1])
+
+    LOG_SPACING_MULTIPLIER = 1.15
+    LOG_SCALE_SAVE_THRESHOLD = 102_400
+
+    tranche_save_threshold = LOG_SCALE_SAVE_THRESHOLD // tranche_size
+
+
+    checkpoint_save_tranches = exp_scale(1, tranche_save_threshold, LOG_SPACING_MULTIPLIER)
+
+    LINEAR_SPACING = 50
+
+    def should_save_checkpoint(tranches_seen):
+        if tranches_seen < tranche_save_threshold:
+            return tranches_seen in checkpoint_save_tranches
+        else:
+            return (tranches_seen - tranche_save_threshold) % LINEAR_SPACING == 0
+    # -------------------------------------------------------------------------
+    tranches_seen = 0
+
 
     info('Entering training loop...')
     try:
         start = time.time()
 
         for _ in range(epochs):
-            for batch in map(loader_to_jax, data_iter):
-                x, y = batch
-                if steps > SPACING_MULTIPLIER * prev_record_step:
-                    prev_record_step = steps
-                    save_stats(state, x, y, *next(val_data_iter))
-                    info(f'step {steps}: elapsed time {time.time() - start}')
-                    val_data_iter = map(loader_to_jax, iter(val_loader))
-                    if steps > 5_000:
-                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
+            for tranche in map(loader_to_jax, iter(train_loader)):
+                x, y = tranche
+                if should_save_checkpoint(tranches_seen):
+                    save_stats(state, x, y, *jax_val_data)
+                    info(f'images {tranches_seen * tranche_size}: elapsed time {time.time() - start}')
+                    if tranches_seen >= tranche_save_threshold:
+                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer)
                 state = update(state, x, y)
-                steps += num_batches
-            data_iter = iter(train_loader)
+                tranches_seen += 1
     finally:
         try:
-            cleanup_save_stats(state, *next(val_data_iter))
+            cleanup_save_stats(state, *jax_val_data)
         except StopIteration:
             pass
-        checkpoints.save_checkpoint(model_ckpt_dir, state, step=steps, orbax_checkpointer=checkpointer)
+        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer)
 
     info('...exiting loop.')
     # note that return value is a pytree
@@ -259,7 +279,7 @@ def train(vars_0: chex.ArrayTree, N: int, alpha: float, optimizer: optax.Gradien
 #     else:
 #         return div
 
-def apply(key, train_loader, val_loader, devices, model_params, training_params):
+def apply(key, train_loader, val_data, devices, model_params, training_params):
     # get sharded keys
     # n_ensemble = model_params['repeat']
     n_ensemble = model_params['ensemble_size']
@@ -277,7 +297,11 @@ def apply(key, train_loader, val_loader, devices, model_params, training_params)
     del key
 
     alpha = model_params['alpha']
-    vars_0 = initialize(init_keys, N, alpha, ensemble_subsets) # shape: (n_ensemble // div, div, param dims)
+    try:
+        dtype = jnp.dtype(model_params['dtype'])
+    except TypeError:
+        raise ValueError('`model_params.param_dtype` must be a valid jax dtype')
+    vars_0 = initialize(init_keys, N, alpha, ensemble_subsets, dtype) # shape: (n_ensemble // div, div, param dims)
     # NUM_VMAP_DIMENSIONS = 2
     info('initialized parameters!')
 
@@ -335,14 +359,15 @@ def apply(key, train_loader, val_loader, devices, model_params, training_params)
             alpha,
             optimizer, 
             train_loader, 
-            val_loader, 
+            val_data, 
             epochs, 
             batch_size, 
             n_ensemble,
             ensemble_subsets,
             use_checkpoint,
             ckpt_dir,
-            model_ckpt_dir)
+            model_ckpt_dir,
+            dtype)
 
     return None
 

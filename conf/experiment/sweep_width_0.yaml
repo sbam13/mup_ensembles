@@ -7,7 +7,7 @@ hyperparams:
   - training_params:
       eta_0: 0.01
       minibatch_size: 1024
-      microbatch_size: 64
+      microbatch_size: 256
       num_workers: 24
       epochs: 50
       full_batch_gradient: false
@@ -16,9 +16,10 @@ hyperparams:
       ckpt_dir: ''
       model_ckpt_dir: ''
     model_params:
-      'N': 32
+      'N': 128
       alpha: 1.0
       ensemble_size: 1
+      dtype: bfloat16
     seed: 3442
   data_params:
     P: 1048576

@@ -29,131 +29,146 @@ ModuleDef = Any
 
 
 class ResNetBlock(nn.Module):
-  """ResNet block."""
-  filters: int
-  conv: ModuleDef
-  norm: ModuleDef
-  act: Callable
-  kernel_init: Callable
-  bias_init: Callable
-  strides: Tuple[int, int] = (1, 1)
+		"""ResNet block."""
+		filters: int
+		conv: ModuleDef
+		norm: ModuleDef
+		act: Callable
+		kernel_init: Callable
+		bias_init: Callable
+		strides: Tuple[int, int] = (1, 1)
+		param_dtype: Any = jnp.float32
 
-  @nn.compact
-  def __call__(self, x):
-    residual = x
-    y = self.conv(self.filters, (3, 3), self.strides, 
-                kernel_init=self.kernel_init, bias_init=self.bias_init)(x)
-    y = self.norm()(y)
-    y = self.act(y)
-    y = self.conv(self.filters, (3, 3),
-                kernel_init=self.kernel_init, bias_init=self.bias_init)(y)
-    y = self.norm(scale_init=nn.initializers.zeros)(y)
+		@nn.compact
+		def __call__(self, x):
+				residual = x
+				y = self.conv(self.filters, (3, 3), self.strides,
+											kernel_init=self.kernel_init, bias_init=self.bias_init,
+											param_dtype=self.param_dtype)(x)
+				y = self.norm(param_dtype=self.param_dtype, dtype=self.param_dtype)(y)
+				y = self.act(y)
+				y = self.conv(self.filters, (3, 3),
+											kernel_init=self.kernel_init, bias_init=self.bias_init,
+											param_dtype=self.param_dtype)(y)
+				y = self.norm(scale_init=nn.initializers.zeros,
+											param_dtype=self.param_dtype, dtype=self.param_dtype)(y)
 
-    if residual.shape != y.shape:
-      residual = self.conv(self.filters, (1, 1),
-                           self.strides, 
-                           kernel_init=self.kernel_init, bias_init=self.bias_init,
-                           name='conv_proj')(residual)
-      residual = self.norm(name='norm_proj')(residual)
+				if residual.shape != y.shape:
+						residual = self.conv(self.filters, (1, 1),
+																 self.strides,
+																 kernel_init=self.kernel_init, bias_init=self.bias_init,
+																 param_dtype=self.param_dtype,
+																 name='conv_proj')(residual)
+						residual = self.norm(param_dtype=self.param_dtype,
+																 name='norm_proj', dtype=self.param_dtype)(residual)
 
-    return self.act(residual + y)
+				return self.act(residual + y)
 
 
 class BottleneckResNetBlock(nn.Module):
-  """Bottleneck ResNet block."""
-  filters: int
-  conv: ModuleDef
-  norm: ModuleDef
-  act: Callable
-  kernel_init: Callable
-  bias_init: Callable
-  strides: Tuple[int, int] = (1, 1)
+		"""Bottleneck ResNet block."""
+		filters: int
+		conv: ModuleDef
+		norm: ModuleDef
+		act: Callable
+		kernel_init: Callable
+		bias_init: Callable
+		strides: Tuple[int, int] = (1, 1)
+		param_dtype: Any = jnp.float32
 
-  @nn.compact
-  def __call__(self, x):
-    residual = x
-    y = self.conv(self.filters, (1, 1),
-                kernel_init=self.kernel_init, bias_init=self.bias_init)(x)
-    y = self.norm()(y)
-    y = self.act(y)
-    y = self.conv(self.filters, (3, 3), self.strides,
-                kernel_init=self.kernel_init, bias_init=self.bias_init)(y)
-    y = self.norm()(y)
-    y = self.act(y)
-    y = self.conv(self.filters * 4, (1, 1),
-                kernel_init=self.kernel_init, bias_init=self.bias_init)(y)
-    y = self.norm(scale_init=nn.initializers.zeros)(y)
+		@nn.compact
+		def __call__(self, x):
+				residual = x
+				y = self.conv(self.filters, (1, 1),
+											kernel_init=self.kernel_init, bias_init=self.bias_init, param_dtype=self.param_dtype)(x)
+				y = self.norm(param_dtype=self.param_dtype, dtype=self.param_dtype)(y)
+				y = self.act(y)
+				y = self.conv(self.filters, (3, 3), self.strides,
+											kernel_init=self.kernel_init, bias_init=self.bias_init, param_dtype=self.param_dtype)(y)
+				y = self.norm(param_dtype=self.param_dtype, dtype=self.param_dtype)(y)
+				y = self.act(y)
+				y = self.conv(self.filters * 4, (1, 1),
+											kernel_init=self.kernel_init, bias_init=self.bias_init,
+											param_dtype=self.param_dtype)(y)
+				y = self.norm(scale_init=nn.initializers.zeros,
+											param_dtype=self.param_dtype, dtype=self.param_dtype)(y)
 
-    if residual.shape != y.shape:
-      residual = self.conv(self.filters * 4, (1, 1),
-                           self.strides, 
-                           kernel_init=self.kernel_init, bias_init=self.bias_init,
-                           name='conv_proj')(residual)
-      residual = self.norm(name='norm_proj')(residual)
+				if residual.shape != y.shape:
+						residual = self.conv(self.filters * 4, (1, 1),
+																 self.strides,
+																 kernel_init=self.kernel_init, bias_init=self.bias_init,
+																 param_dtype=self.param_dtype,
+																 name='conv_proj')(residual)
+						residual = self.norm(param_dtype=self.param_dtype,
+																 name='norm_proj', dtype=self.param_dtype)(residual)
 
-    return self.act(residual + y)
+				return self.act(residual + y)
 
 
 class ResNet(nn.Module):
-  """ResNetV1."""
-  stage_sizes: Sequence[int]
-  block_cls: ModuleDef
-  num_classes: int
-  num_filters: int = 64
-  dtype: Any = jnp.float32
-  act: Callable = nn.relu
-  conv: ModuleDef = nn.Conv
-  alpha: float = 1.0
-  kernel_init: Callable = nn.initializers.variance_scaling(2.0, 'fan_in', 'normal')
-  bias_init: Callable = nn.initializers.variance_scaling(2.0, 'fan_in', 'normal')
+		"""ResNetV1."""
+		stage_sizes: Sequence[int]
+		block_cls: ModuleDef
+		num_classes: int
+		num_filters: int = 64
+		act: Callable = nn.relu
+		conv: ModuleDef = nn.Conv
+		alpha: float = 1.0
+		kernel_init: Callable = nn.initializers.variance_scaling(
+				2.0, 'fan_in', 'normal')
+		bias_init: Callable = nn.initializers.variance_scaling(
+				2.0, 'fan_in', 'normal')
+		param_dtype: Any = jnp.float32
 
-  @nn.compact
-  def __call__(self, x, train: bool = True):
-    conv = partial(self.conv, use_bias=False, 
-                kernel_init=self.kernel_init, dtype=self.dtype)
-    norm = partial(nn.BatchNorm,
-                   use_running_average=not train,
-                   momentum=0.9,
-                   epsilon=1e-5,
-                   dtype=self.dtype)
-    x = conv(self.num_filters, (7, 7), (2, 2),
-             padding=[(3, 3), (3, 3)],
-             kernel_init=self.kernel_init,
-             bias_init=self.bias_init,
-             name='conv_init')(x)
-    x = norm(name='bn_init')(x)
-    x = nn.relu(x)
-    x = nn.max_pool(x, (3, 3), strides=(2, 2), padding='SAME')
-    for i, block_size in enumerate(self.stage_sizes):
-      for j in range(block_size):
-        strides = (2, 2) if i > 0 and j == 0 else (1, 1)
-        x = self.block_cls(self.num_filters * 2 ** i,
-                           strides=strides,
-                           conv=conv,
-                           norm=norm,
-                           act=self.act,
-                           kernel_init=self.kernel_init,
-                           bias_init=self.bias_init)(x)
-    x = jnp.mean(x, axis=(1, 2))
-    # changed from nn.Dense to MuReadout ------------------
-    x = MuReadout(self.num_classes, dtype=self.dtype, alpha=self.alpha)(x)
-    # -----------------------------------------------------
-    x = jnp.asarray(x, self.dtype)
-    return x
+		@nn.compact
+		def __call__(self, x, train: bool = True):
+				conv = partial(self.conv, use_bias=False,
+											 kernel_init=self.kernel_init)
+				norm = partial(nn.BatchNorm,
+											 use_running_average=not train,
+											 momentum=0.9,
+											 epsilon=1e-5)
+				x = conv(self.num_filters, (7, 7), (2, 2),
+								 padding=[(3, 3), (3, 3)],
+								 kernel_init=self.kernel_init,
+								 bias_init=self.bias_init,
+								 param_dtype=self.param_dtype,
+								 name='conv_init')(x)
+				x = norm(name='bn_init', param_dtype=self.param_dtype,
+								 dtype=self.param_dtype)(x)
+				x = nn.relu(x)
+				x = nn.max_pool(x, (3, 3), strides=(2, 2), padding='SAME')
+				for i, block_size in enumerate(self.stage_sizes):
+						for j in range(block_size):
+								strides = (2, 2) if i > 0 and j == 0 else (1, 1)
+								x = self.block_cls(self.num_filters * 2 ** i,
+																	 strides=strides,
+																	 conv=conv,
+																	 norm=norm,
+																	 act=self.act,
+																	 kernel_init=self.kernel_init,
+																	 bias_init=self.bias_init,
+																	 param_dtype=self.param_dtype)(x)
+				x = jnp.mean(x, axis=(1, 2))
+				# changed from nn.Dense to MuReadout ------------------
+				x = MuReadout(self.num_classes,
+											param_dtype=self.param_dtype, alpha=self.alpha)(x)
+				# -----------------------------------------------------
+				return x
 
 
 ResNet18 = partial(ResNet, stage_sizes=[2, 2, 2, 2],
-                   block_cls=ResNetBlock)
+									 block_cls=ResNetBlock)
 ResNet34 = partial(ResNet, stage_sizes=[3, 4, 6, 3],
-                   block_cls=ResNetBlock)
+									 block_cls=ResNetBlock)
 ResNet50 = partial(ResNet, stage_sizes=[3, 4, 6, 3],
-                   block_cls=BottleneckResNetBlock)
+									 block_cls=BottleneckResNetBlock)
 ResNet101 = partial(ResNet, stage_sizes=[3, 4, 23, 3],
-                    block_cls=BottleneckResNetBlock)
+										block_cls=BottleneckResNetBlock)
 ResNet152 = partial(ResNet, stage_sizes=[3, 8, 36, 3],
-                    block_cls=BottleneckResNetBlock)
+										block_cls=BottleneckResNetBlock)
 ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3],
-                    block_cls=BottleneckResNetBlock)
+										block_cls=BottleneckResNetBlock)
 
 
 # ResNet18Local = partial(ResNet, stage_sizes=[2, 2, 2, 2],

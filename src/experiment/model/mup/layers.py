@@ -19,5 +19,5 @@ class MuReadout(nn.Dense):
 	def __call__(self, x):
 		multiplier = self.param('multiplier', 
 								lambda _, shape, dtype: jnp.array(self.alpha / shape[0], dtype=dtype), 
-								(jnp.shape(x)[-1], self.features), self.dtype)
+								(jnp.shape(x)[-1], self.features), self.param_dtype)
 		return super().__call__(multiplier * x)

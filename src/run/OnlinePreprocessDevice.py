@@ -32,26 +32,11 @@ class OnlinePreprocessDevice(ABC):
         len_vd = len(vd)
         assert len_vd < 5_000
 
-        NUM_WORKERS = 4
-        vd_batch_size = len_vd // NUM_WORKERS
-        vd_loader = DataLoader(vd, num_workers=NUM_WORKERS)
+        NUM_WORKERS = 1
+        # vd_batch_size = len_vd // NUM_WORKERS
+        vd_loader = DataLoader(vd, num_workers=NUM_WORKERS, batch_size=len_vd, shuffle=False, drop_last=False)
 
-        divisible_len_vd = vd_batch_size * NUM_WORKERS
-        images = ch.zeros((divisible_len_vd, 224, 224, 3), dtype=ch.float32)
-        labels = []
-        for i, batch in enumerate(vd_loader):
-            im, lab = batch
-            images[i*vd_batch_size:(i + 1)*vd_batch_size, :, :, :] = im
-            labels += lab
-
-        jnp_images = jnp.array(images)
-        jnp_labels = jnp.array(labels, dtype=jnp.int32)
-        logging.info(f'validation label shape: {jnp_labels.shape}')
-
-        # maintains pmap order of devices
-        self.devices = jax.lib.xla_bridge.get_backend().get_default_device_assignment(jax.device_count())
-        # if parallelize:
-        self.val_data = jax.device_put((jnp_images, jnp_labels), self.devices[0])
+        self.val_data = next(iter(vd_loader))
 
     def preprocess(self, parallelize=True):
         """Initializes the PreprocessDevice object."""
@@ -64,9 +49,9 @@ class OnlinePreprocessDevice(ABC):
         self.train_dataset = td
 
         logging.info('Reading validation data:')
-        # self._prep_vd(vd)
-        self.val_data = vd
-        logging.info(f'Put validation data onto device.')
+        self._prep_vd(vd)
+        logging.info('Done reading validation data.')
+        # logging.info(f'Put validation data onto device.')
         # else: # no loading onto device
         #     self.val_data = (jnp_images, jnp_labels)
 
