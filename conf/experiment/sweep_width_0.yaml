@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.01
+      eta_0: 0.0003
       minibatch_size: 1024
       microbatch_size: 512
       num_workers: 24
