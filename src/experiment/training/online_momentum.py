@@ -45,7 +45,9 @@ def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
     
     def train_init(key, inp):
         vars_ = model.init(key, inp, train=True)
-        return dict(mup.rescale_parameters({'params': vars_['params']}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
+        mup_vars = dict(mup.rescale_parameters({'params': vars_['params']}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
+        mup_vars.update({'mup': vars_['mup']})
+        return mup_vars
     
     within_subset_size = keys.shape[0] // num_ensemble_subsets
     sub_keys = keys.reshape((num_ensemble_subsets, within_subset_size, 2))
@@ -66,6 +68,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
     class TrainState(train_state.TrainState):
         batch_stats: chex.ArrayTree
+        mup: chex.ArrayTree
 
     @partial(vmap, in_axes=(0, None, None), axis_name='ensemble')
     def _subset_update(state: TrainState, Xtr_sb: chex.ArrayDevice, ytr_sb: chex.ArrayDevice) -> TrainState:
@@ -75,8 +78,8 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
             y_hat, dict_updated_bs = state.apply_fn(vars, Xin, train=True, mutable=['batch_stats'])
             return y_hat, dict_updated_bs['batch_stats']
         
-        def loss_fn(params, batch_stats, Xin, yin):
-            vars = {'params': params, 'batch_stats': batch_stats}
+        def loss_fn(params, batch_stats, mup_col, Xin, yin):
+            vars = {'params': params, 'batch_stats': batch_stats, 'mup': mup_col}
             y_hat, update_bs = apply_fn(vars, Xin)
             loss = jnp.mean(optax.softmax_cross_entropy_with_integer_labels(y_hat, yin))
             return loss, update_bs
@@ -90,7 +93,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
             batch, labels = data
 
             # update params
-            (_, update_bs), grads = loss_grad_fn(step_state.params, step_state.batch_stats, batch, labels)
+            (_, update_bs), grads = loss_grad_fn(step_state.params, step_state.batch_stats, step_state.mup, batch, labels)
             return step_state.apply_gradients(grads=grads, batch_stats=update_bs), None
     
 
@@ -123,7 +126,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
         @partial(vmap, axis_name='within_subset', in_axes=0)
         def get_subset_preds(ind_state):
-            variables = {'params': ind_state.params, 'batch_stats': ind_state.batch_stats}
+            variables = {'params': ind_state.params, 'batch_stats': ind_state.batch_stats, 'mup': ind_state.mup}
             def inference_subroutine(batch_data):
                 x_batch, _ = batch_data
                 logits = state.apply_fn(variables, x_batch, train=False)
@@ -150,8 +153,9 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
     # removed pmap
     init_params = vars_0['params']
     init_bs = vars_0['batch_stats']
-    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset', in_axes=(0, None, 0)), 
-                        axis_name='over_subsets', in_axes=(0, None, 0))(init_params, optimizer, init_bs)
+    mup_col= vars_0['mup']
+    init_step_state = vmap(vmap(create_train_state, axis_name='within_subset', in_axes=(0, None, 0, 0)), 
+                        axis_name='over_subsets', in_axes=(0, None, 0, 0))(init_params, optimizer, init_bs, mup_col)
 
     # training loop
     state = init_step_state
