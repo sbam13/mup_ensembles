@@ -311,11 +311,11 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     init_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=dtype)
     base_model = ResNet18(num_classes=NUM_CLASSES, num_filters=BASE_N, param_dtype=dtype)
     vars_ = base_model.init(jax.random.PRNGKey(0), init_input)
-    mup.set_base_shapes({'params': vars_['params'].unfreeze(), 'batch_stats': vars_['batch_stats']})
+    mup.set_base_shapes({'params': vars_['params'].unfreeze()})
     
     target_model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=dtype)
     vars_target = target_model.init(jax.random.PRNGKey(0), init_input)
-    mup.set_target_shapes({'params': vars_target['params'].unfreeze(), 'batch_stats': vars_target['batch_stats']})
+    mup.set_target_shapes({'params': vars_target['params'].unfreeze()})
     del vars_, vars_target, base_model, target_model, init_input
     # -------------------------------------------------------------------------
 
