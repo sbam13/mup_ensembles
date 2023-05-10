@@ -147,8 +147,8 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
     # -------------------------------------------------------------------------
     model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=data_dtype)
 
-    def create_train_state(params, tx, bs):
-        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs)
+    def create_train_state(params, tx, bs, mup):
+        return TrainState.create(apply_fn=model.apply, params=params, tx=tx, batch_stats=bs, mup=mup)
 
     # removed pmap
     init_params = vars_0['params']
