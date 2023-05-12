@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.001
+      eta_0: 0.006
       minibatch_size: 1024
       microbatch_size: 512
       num_workers: 24
@@ -17,8 +17,7 @@ hyperparams:
       model_ckpt_dir: ''
     model_params:
       BASE_N: 64
-      'N': 256
-      alpha: 1.0
+      'N': 64
       ensemble_size: 1
       dtype: bfloat16
     seed: 3442
