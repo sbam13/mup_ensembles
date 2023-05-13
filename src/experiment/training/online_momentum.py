@@ -248,27 +248,20 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
 
 
     info('Entering training loop...')
-    try:
-        start = time.time()
+    start = time.time()
 
-        for _ in range(epochs):
-            for tranche in map(loader_to_jax, iter(train_loader)):
-                x, y = tranche
-                if should_save_checkpoint(tranches_seen):
-                    save_stats(state, x, y, *jax_val_data)
-                    info(f'images {tranches_seen * tranche_size}: elapsed time {time.time() - start}')
-                    if tranches_seen >= tranche_save_threshold:
-                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer, keep=1_000_000)
-                state = update(state, x, y)
-                tranches_seen += 1
-    finally:
-        try:
-            cleanup_save_stats(state, *jax_val_data)
-        except StopIteration:
-            pass
-        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer)
+    for _ in range(epochs):
+        for tranche in map(loader_to_jax, iter(train_loader)):
+            x, y = tranche
+            if should_save_checkpoint(tranches_seen):
+                save_stats(state, x, y, *jax_val_data)
+                info(f'images {tranches_seen * tranche_size}: elapsed time {time.time() - start}')
+                if tranches_seen >= tranche_save_threshold:
+                    checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer, keep=1_000_000)
+            state = update(state, x, y)
+            tranches_seen += 1
 
-    info('...exiting loop.')
+    info(f'...exiting loop: elapsed time {time.time() - start}')
     # note that return value is a pytree
     return None, None
 
