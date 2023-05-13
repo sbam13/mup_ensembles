@@ -3,6 +3,13 @@ from omegaconf import MISSING
 # from hydra.core.config_store import ConfigStore
 
 @dataclass
+class WarmupCosineDecayParameters:
+    warmup_epochs: float = 0.5
+    init_lr: float = 2e-3
+    min_lr: float = 6e-5
+
+
+@dataclass
 class TrainingParams:
     eta_0: float = 1e-2
     # momentum: float = 0.9
@@ -16,6 +23,8 @@ class TrainingParams:
     use_checkpoint: bool = False
     ckpt_dir: str = ''
     model_ckpt_dir: str = ''
+    use_warmup_cosine_decay: bool = False
+    wcd_params: WarmupCosineDecayParameters = field(default_factory=WarmupCosineDecayParameters)
 
 
 @dataclass

@@ -5,4 +5,5 @@ flax==0.6.1
 chex==0.1.5
 torch
 torchvision
+flatdict
 --find-links https://storage.googleapis.com/jax-releases/jax_cuda_releases.html

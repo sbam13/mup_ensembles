@@ -173,7 +173,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
         layer_norms = gln(state)
         ckpt = {'train': train_preds, 'val': val_preds, 'layer_norms': layer_norms}
         checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
-                                step=state.step, overwrite=False, keep=1000,
+                                step=state.step, overwrite=False, keep=1_000_000,
                                 orbax_checkpointer=checkpointer)
         return
 
@@ -181,7 +181,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
         val_preds = glp(state, val_x, val_y)
         ckpt = {'val': val_preds}
         checkpoints.save_checkpoint(ckpt_dir=ckpt_dir, target=ckpt, 
-                                step=state.step, overwrite=False, keep=1000,
+                                step=state.step, overwrite=False, keep=1_000_000,
                                 orbax_checkpointer=checkpointer)
         return
     info('...done')
@@ -258,7 +258,7 @@ def train(vars_0: chex.ArrayTree, N: int, optimizer: optax.GradientTransformatio
                     save_stats(state, x, y, *jax_val_data)
                     info(f'images {tranches_seen * tranche_size}: elapsed time {time.time() - start}')
                     if tranches_seen >= tranche_save_threshold:
-                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer)
+                        checkpoints.save_checkpoint(model_ckpt_dir, state, step=state.step, orbax_checkpointer=checkpointer, keep=1_000_000)
                 state = update(state, x, y)
                 tranches_seen += 1
     finally:
@@ -335,9 +335,28 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
 
     # create optimizer ----------------------------------------------------------------------
     eta_0 = training_params['eta_0']
-    eta_0 = eta_0
 
-    optimizer = mup.wrap_optimizer(optax.adam(eta_0), adam=True)
+    # warmup and cosine decay schedule
+    base_optimizer = None
+    use_warmup_cosine_decay = training_params['use_warmup_cosine_decay']
+    if use_warmup_cosine_decay:
+        wcd_params = training_params['wcd_params']
+        warmup_epochs = wcd_params['warmup_epochs']
+        init_lr = wcd_params['init_lr']
+        min_lr = wcd_params['min_lr']
+
+        steps_per_minibatch = training_params['minibatch_size'] // training_params['microbatch_size']
+        steps_per_epoch = steps_per_minibatch * len(train_loader)
+        
+        warmup_steps = int(steps_per_epoch * warmup_epochs)
+        decay_steps = training_params['epochs'] * steps_per_epoch
+
+        lr_schedule = optax.warmup_cosine_decay_schedule(init_value=init_lr, peak_value=eta_0, warmup_steps=warmup_steps, decay_steps=decay_steps, end_value=min_lr)
+        base_optimizer = optax.adam(learning_rate=lr_schedule)
+    else:
+        base_optimizer = optax.adam(eta_0)
+
+    optimizer = mup.wrap_optimizer(base_optimizer, adam=True)
 
     # def flattened_traversal(fn):
     #     """Returns function that is called with `(path, param)` instead of pytree."""
