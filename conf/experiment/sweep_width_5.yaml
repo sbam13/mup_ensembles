@@ -22,13 +22,13 @@ hyperparams:
         min_lr: 8.0e-05
     model_params:
       BASE_N: 64
-      'N': 32
-      ensemble_size: 4
+      'N': 256
+      ensemble_size: 2
       dtype: bfloat16
-    seed: 389667
+    seed: 698766
   data_params:
     P: 1048576
     data_seed: 2423
     root_dir: data-dir
     val_P: 1024
-base_dir: /tmp/0
+base_dir: /tmp/5

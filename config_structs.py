@@ -5,13 +5,13 @@ from omegaconf import MISSING
 @dataclass
 class WarmupCosineDecayParameters:
     warmup_epochs: float = 0.5
-    init_lr: float = 2e-3
-    min_lr: float = 6e-5
+    init_lr: float = 8e-5
+    min_lr: float = 8e-5
 
 
 @dataclass
 class TrainingParams:
-    eta_0: float = 1e-2
+    eta_0: float = 8e-3
     # momentum: float = 0.9
     # weight_decay: float = 1e-5 # TODO: not implemented; replace with batch_size
     minibatch_size: int = 1024 # changed
