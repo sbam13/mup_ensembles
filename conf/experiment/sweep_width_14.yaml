@@ -25,7 +25,7 @@ hyperparams:
       'N': 512
       ensemble_size: 1
       dtype: bfloat16
-    seed: 881058
+    seed: 955983
   data_params:
     P: 1048576
     data_seed: 2423

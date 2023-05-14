@@ -23,9 +23,9 @@ hyperparams:
     model_params:
       BASE_N: 64
       'N': 32
-      ensemble_size: 4
+      ensemble_size: 1
       dtype: bfloat16
-    seed: 521255
+    seed: 867382
   data_params:
     P: 1048576
     data_seed: 2423
