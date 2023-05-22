@@ -5,7 +5,7 @@ setting:
 hyperparams:
   task_list:
   - training_params:
-      eta_0: 0.008
+      eta_0: 0.006
       minibatch_size: 1024
       microbatch_size: 128
       num_workers: 24
@@ -15,7 +15,7 @@ hyperparams:
       use_checkpoint: false
       ckpt_dir: ''
       model_ckpt_dir: ''
-      use_warmup_cosine_decay: true
+      use_warmup_cosine_decay: false
       wcd_params:
         warmup_epochs: 0.5
         init_lr: 8.0e-05
@@ -25,7 +25,7 @@ hyperparams:
       'N': 256
       ensemble_size: 1
       dtype: bfloat16
-    seed: 195365
+    seed: 746243
   data_params:
     P: 1048576
     data_seed: 2423

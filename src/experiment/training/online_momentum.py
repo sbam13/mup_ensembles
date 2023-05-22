@@ -30,7 +30,9 @@ NUM_CLASSES = 1_000
 IMAGENET_SHAPE = (224, 224, 3)
 
 # BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
-BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
+# BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
+BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_fix_lr'
+
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0

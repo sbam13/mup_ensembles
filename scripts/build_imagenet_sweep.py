@@ -94,7 +94,7 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    widths = [32, 64, 128, 256]
+    widths = [32, 64, 128, 256, 512]
     # width_es_map =  {512: 1, 256: 2, 128: 6, 64: 12, 32: 36, 16: 64, 8: 64, 4: 128, 2: 128}
     width_es_map =  {512: 1, 256: 2, 128: 2, 64: 4, 32: 4}
     # for each key in width_es_map, assign a list of random numbers of length width_es_map[key]
@@ -112,9 +112,19 @@ if __name__ == '__main__':
     dp = DataParams(data_seed=data_seed)
 
     tlcs = []
+
     for w in widths:
         for seed in width_es_seeds[w]:
-            tlcs.append(TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=128, use_warmup_cosine_decay=True), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp))
+        # set seed to a random int
+        # seed = int(np.random.randint(0, 10**6))
+            tlcs.append(TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=128, use_warmup_cosine_decay=False, eta_0=6e-3), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp))
+
+
+    for w in widths:
+        # for seed in width_es_seeds[w]:
+        # set seed to a random int
+        seed = int(np.random.randint(0, 10**6))
+        tlcs.append(TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=128, use_warmup_cosine_decay=False, eta_0=6e-3), model_params=ModelParams(N=w, ensemble_size=1), seed=seed)], data_params=dp))
 
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
