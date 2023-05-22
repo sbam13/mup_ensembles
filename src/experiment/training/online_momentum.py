@@ -22,17 +22,10 @@ from jax.random import split
 from src.experiment.model.flax_mup.resnet import ResNet18
 from src.experiment.model.flax_mup.mup import Mup
 
-# from src.experiment.training.Result import OnlineResult
-
-
+from src.run.constants import BASE_SAVE_DIR
 
 NUM_CLASSES = 1_000
 IMAGENET_SHAPE = (224, 224, 3)
-
-# BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
-# BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
-BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_fix_lr'
-
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
@@ -41,7 +34,6 @@ def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
     model = ResNet18(num_classes=1000, num_filters=N, param_dtype=param_dtype)
     dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=param_dtype) # added batch index
 
-    # train_init = partial(model.init, train=True)
     wp = mup._width_mults
     rzi = mup.readout_zero_init
     
@@ -352,41 +344,6 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
         base_optimizer = optax.adam(eta_0)
 
     optimizer = mup.wrap_optimizer(base_optimizer, adam=True)
-
-    # def flattened_traversal(fn):
-    #     """Returns function that is called with `(path, param)` instead of pytree."""
-    #     def mask(tree):
-    #         flat = flax.traverse_util.flatten_dict(tree)
-    #         return flax.traverse_util.unflatten_dict(
-    #             {k: fn(k, v) for k, v in flat.items()})
-    #     return mask
-
-    # def assign_lr(k, v):
-    #     layer_name = k[-2]
-    #     if layer_name.startswith('Conv'):
-    #         return eta_0 / np.prod(v.shape[:-1])
-    #     else:
-    #         return eta_0
-
-    # lr_fn = flattened_traversal(assign_lr)
-    # lrs = lr_fn(vars_0['params'])
-    
-    # opts = jax.tree_map(lambda lr: optax.adam(lr), lrs)
-    # flat_opts = flax.traverse_util.flatten_dict(opts)
-    
-    # # fix multiplier
-    # flat_opts[('MuReadout_0', 'multiplier')] = optax.set_to_zero()
-
-    # # scale readout learning rates by 1/alpha (hacky)
-    # flat_opts[('MuReadout_0', 'kernel')] = optax.adam(eta_0)
-    # flat_opts[('MuReadout_0', 'bias')] = optax.adam(eta_0)
-
-    # str_flat_opts = {str.join(' -- ', k): v for k, v in flat_opts.items()}
-
-    # label_mapping = flattened_traversal(lambda k, _: str.join(' -- ', k))(vars_0['params'])
-
-    # optimizer = optax.multi_transform(str_flat_opts, label_mapping)
-    # ---------------------------------------------------------------------------------------
 
     batch_size = training_params['microbatch_size']
     epochs = training_params['epochs']
