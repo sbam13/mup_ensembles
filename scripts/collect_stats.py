@@ -266,6 +266,8 @@ def main(BASE_DIR):
 
     # -----------------------------------------------------------------------------
     SAVE_DIR = os.path.join('/n/pehlevan_lab/Users/sab/', BASE_DIR + '_stats')
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
 
     # pickle the eight dicts above and save them in SAVE_DIR
     with open(os.path.join(SAVE_DIR, 'avg_train_losses.pkl'), 'wb') as f:
