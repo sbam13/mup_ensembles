@@ -23,8 +23,7 @@ from functools import reduce
 
 from tqdm import tqdm
 
-BASE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
-
+import argparse
 
 # -----------------------------------------------------------------------------
 # utils
@@ -220,7 +219,7 @@ def get_true_logits_ot(vls):
         true_logits[step] = vgtl(val_logits, val_labels)
     return true_logits
     
-def main():
+def main(BASE_DIR):
     # -----------------------------------------------------------------------------
     # get files
 
@@ -266,7 +265,7 @@ def main():
         # compute pointwise logit consistency
 
     # -----------------------------------------------------------------------------
-    SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_stats'
+    SAVE_DIR = os.path.join('/n/pehlevan_lab/Users/sab/', BASE_DIR + '_stats')
 
     # pickle the eight dicts above and save them in SAVE_DIR
     with open(os.path.join(SAVE_DIR, 'avg_train_losses.pkl'), 'wb') as f:
@@ -301,7 +300,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # parse BASE_DIR from command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--base_dir', type=str, required=True)
+    args = parser.parse_args()
+    BASE_DIR = args.base_dir
+
+    main(BASE_DIR)
 
 
 

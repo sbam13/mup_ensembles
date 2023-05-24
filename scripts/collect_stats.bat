@@ -19,4 +19,4 @@ source activate jupyter_39
 
 cd /n/home07/ssainathan/workplace/gpu_scheduler/scripts
 
-srun python3 collect_stats.py
+srun python3 collect_stats.py --base_dir="/n/pehlevan_lab/Users/sab/ecd_fix_lr"
