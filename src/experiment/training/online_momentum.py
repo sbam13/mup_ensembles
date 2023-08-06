@@ -30,13 +30,15 @@ NUM_CLASSES = 1_000
 IMAGENET_SHAPE = (224, 224, 3)
 
 # BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ensemble_compute_data'
-BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
+# BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/ecd_final'
+BASE_SAVE_DIR = '/n/pehlevan_lab/Users/sab/mitigate_variance'
+
 
 def is_power_of_2(n):
     return (n & (n-1) == 0) and n != 0
 
-def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
-    model = ResNet18(num_classes=1000, num_filters=N, param_dtype=param_dtype)
+def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype, zero_readout: bool = False):
+    model = ResNet18(num_classes=NUM_CLASSES, num_filters=N, param_dtype=param_dtype)
     dummy_input = jnp.zeros((1,) + IMAGENET_SHAPE, dtype=param_dtype) # added batch index
 
     # train_init = partial(model.init, train=True)
@@ -45,6 +47,13 @@ def initialize(keys, N: int, num_ensemble_subsets: int, mup, param_dtype):
     
     def train_init(key, inp):
         vars_ = model.init(key, inp, train=True)
+        
+        if zero_readout:
+            unfrozen_vars = vars_.unfreeze()
+            unfrozen_vars['params']['Readout_0']['Dense_0']['kernel'] = jnp.zeros_like(unfrozen_vars['params']['Readout_0']['Dense_0']['kernel'])
+            vars_ = flax.core.freeze(unfrozen_vars)
+            del unfrozen_vars
+
         mup_vars = dict(mup.rescale_parameters({'params': vars_['params']}, wp, rzi), **{'batch_stats': vars_['batch_stats']})
         mup_vars.update({'mup': vars_['mup']})
         return mup_vars
@@ -322,7 +331,7 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
     del key
 
     # alpha = model_params['alpha']
-    vars_0 = initialize(init_keys, N, ensemble_subsets, mup, dtype) # shape: (n_ensemble // div, div, param dims)
+    vars_0 = initialize(init_keys, N, ensemble_subsets, mup, dtype, True) # shape: (n_ensemble // div, div, param dims)
     # NUM_VMAP_DIMENSIONS = 2
     info('initialized parameters!')
 
@@ -342,7 +351,10 @@ def apply(key, train_loader, val_data, devices, model_params, training_params):
         steps_per_epoch = steps_per_minibatch * len(train_loader)
         
         warmup_steps = int(steps_per_epoch * warmup_epochs)
-        decay_steps = training_params['epochs'] * steps_per_epoch
+        
+        # decay_steps = training_params['epochs'] * steps_per_epoch
+        DECAY_EPOCHS = 50
+        decay_steps = DECAY_EPOCHS * steps_per_epoch
 
         lr_schedule = optax.warmup_cosine_decay_schedule(init_value=init_lr, peak_value=eta_0, warmup_steps=warmup_steps, decay_steps=decay_steps, end_value=min_lr)
         base_optimizer = optax.adam(learning_rate=lr_schedule)

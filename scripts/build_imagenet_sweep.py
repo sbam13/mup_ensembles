@@ -94,9 +94,9 @@ def clear_folder(folder):
 if __name__ == '__main__':
     clear_folder(CONFIG_DIR)
     clear_folder(SBATCH_DIR)
-    widths = [32, 64, 128, 256]
+    widths = [32, 64, 128, 256, 512]
     # width_es_map =  {512: 1, 256: 2, 128: 6, 64: 12, 32: 36, 16: 64, 8: 64, 4: 128, 2: 128}
-    width_es_map =  {512: 1, 256: 2, 128: 2, 64: 4, 32: 4}
+    width_es_map =  {512: 1, 256: 1, 128: 1, 64: 1, 32: 1}
     # for each key in width_es_map, assign a list of random numbers of length width_es_map[key]
     # these will be the seeds for the ensemble members
     width_es_seeds = {512: [262415, 153293, 25454, 423887],
@@ -113,8 +113,8 @@ if __name__ == '__main__':
 
     tlcs = []
     for w in widths:
-        for seed in width_es_seeds[w]:
-            tlcs.append(TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=128, use_warmup_cosine_decay=True), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp))
+        for seed in width_es_seeds[w][:width_es_map[w]]:
+            tlcs.append(TaskListConfig(task_list=[TaskConfig(training_params=TrainingParams(microbatch_size=128, use_warmup_cosine_decay=True, epochs=2), model_params=ModelParams(N=w, ensemble_size=width_es_map[w]), seed=seed)], data_params=dp))
 
     configs = [Config(setting=Setting(), hyperparams=tlc_inst, base_dir=BASE_DIR.format(id=id)) for id, tlc_inst in enumerate(tlcs)]
     str_configs = ['# @package _global_\n' + OmegaConf.to_yaml(conf) for conf in configs]
