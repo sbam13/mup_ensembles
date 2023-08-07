@@ -11,7 +11,7 @@
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=a100
-#SBATCH --requeue
+
 
 module load cuda/12.0.1-fasrc01 cudnn/8.9.2.26_cuda12-fasrc01 python/3.10.9-fasrc01
 
