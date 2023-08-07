@@ -7,6 +7,7 @@ SBATCH_TEMPLATE = '''#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=256g
+#SBATCH --partition=kempner
 #SBATCH --account=kempner_pehlevan_lab
 #SBATCH --ntasks=1       
 #SBATCH --gres=gpu:1
