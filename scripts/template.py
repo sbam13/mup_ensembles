@@ -16,7 +16,7 @@ SBATCH_TEMPLATE = '''#!/bin/bash
 
 module load cuda/12.0.1-fasrc01 cudnn/8.9.2.26_cuda12-fasrc01 python/3.10.9-fasrc01
 
-source activate jax_env
+source activate jupyter_39
 
 rm -rf /tmp/{id}
 mkdir /tmp/{id}
