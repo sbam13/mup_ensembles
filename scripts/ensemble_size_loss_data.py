@@ -87,7 +87,7 @@ def get_loss(logits, labels):
 
 get_ind_losses = vmap(get_loss, in_axes=(0, None))
 get_avg_ind_loss = lambda logits, labels: jnp.mean(get_ind_losses(logits, labels), axis=0)
-get_ens_loss = lambda logits, labels: get_loss(jnp.mean(logits, axis=0), labels)
+get_ens_loss = lambda logits, labels, ens_size: get_loss(jnp.mean(logits[:ens_size], axis=0), labels)
 
 @jax.jit
 def get_acc(logits, labels):
@@ -96,7 +96,7 @@ def get_acc(logits, labels):
 
 get_ind_accs = vmap(get_acc, in_axes=(0, None))
 get_avg_ind_acc = lambda logits, labels: jnp.mean(get_ind_accs(logits, labels), axis=0)
-get_ens_acc = lambda logits, labels: get_acc(jnp.mean(logits, axis=0), labels)
+get_ens_acc = lambda logits, labels, ens_size: get_acc(jnp.mean(logits[:ens_size], axis=0), labels)
 
 
 # get logit corresponding to the true label
@@ -163,8 +163,8 @@ def get_ens_loss_ot(tls, vls):
         train_labels = tls[step][1]
         val_labels = vls[step][1]
         
-        train_losses[step] = get_ens_loss(train_logits, train_labels)
-        val_losses[step] = get_ens_loss(val_logits, val_labels)
+        train_losses[step] = {ens_size: get_ens_loss(train_logits, train_labels, ens_size) for ens_size in range(1, train_logits.shape[0] + 1)}
+        val_losses[step] = {ens_size: get_ens_loss(val_logits, val_labels, ens_size) for ens_size in range(1, val_logits.shape[0] + 1)}
     return train_losses, val_losses
 
 def get_avg_loss_ot(tls, vls):
@@ -191,8 +191,8 @@ def get_ens_acc_ot(tls, vls):
         train_labels = tls[step][1]
         val_labels = vls[step][1]
         
-        train_losses[step] = get_ens_acc(train_logits, train_labels)
-        val_losses[step] = get_ens_acc(val_logits, val_labels)
+        train_losses[step] = {ens_size: get_ens_acc(train_logits, train_labels, ens_size) for ens_size in range(1, train_logits.shape[0] + 1)}
+        val_losses[step] = {ens_size: get_ens_acc(val_logits, val_labels, ens_size) for ens_size in range(1, val_logits.shape[0] + 1)}
     return train_losses, val_losses
 
 def get_avg_acc_ot(tls, vls):
@@ -240,31 +240,31 @@ def main(base_dir, save_dir):
     # -----------------------------------------------------------------------------
     # process logits
 
-    avg_train_losses = {}
-    avg_val_losses = {}
+    # avg_train_losses = {}
+    # avg_val_losses = {}
 
     ens_train_losses = {}
     ens_val_losses = {}
 
-    avg_train_accs = {}
-    avg_val_accs = {}
+    # avg_train_accs = {}
+    # avg_val_accs = {}
 
     ens_train_accs = {}
     ens_val_accs = {}
 
-    true_val_logits = {}
+    # true_val_logits = {}
 
     # iterate through wcsl.keys() using tqdm
     for w in tqdm(wcsl.keys()):
         tls, vls = get_logits_labels(base_dir, width_ckpt_map[w], wcsl[w]) # fix step issue
         
-        avg_train_losses[w], avg_val_losses[w] = get_avg_loss_ot(tls, vls)
+        # avg_train_losses[w], avg_val_losses[w] = get_avg_loss_ot(tls, vls)
         ens_train_losses[w], ens_val_losses[w] = get_ens_loss_ot(tls, vls)
 
-        avg_train_accs[w], avg_val_accs[w] = get_avg_acc_ot(tls, vls)
+        # avg_train_accs[w], avg_val_accs[w] = get_avg_acc_ot(tls, vls)
         ens_train_accs[w], ens_val_accs[w] = get_ens_acc_ot(tls, vls)
 
-        true_val_logits[w] = get_true_logits_ot(vls)
+        # true_val_logits[w] = get_true_logits_ot(vls)
         # compute pointwise logit consistency
 
     # -----------------------------------------------------------------------------
@@ -272,11 +272,11 @@ def main(base_dir, save_dir):
     SAVE_DIR = save_dir
 
     # pickle the eight dicts above and save them in SAVE_DIR
-    with open(os.path.join(SAVE_DIR, 'avg_train_losses.pkl'), 'wb') as f:
-        pickle.dump(avg_train_losses, f)
+    # with open(os.path.join(SAVE_DIR, 'avg_train_losses.pkl'), 'wb') as f:
+    #     pickle.dump(avg_train_losses, f)
 
-    with open(os.path.join(SAVE_DIR, 'avg_val_losses.pkl'), 'wb') as f:
-        pickle.dump(avg_val_losses, f)
+    # with open(os.path.join(SAVE_DIR, 'avg_val_losses.pkl'), 'wb') as f:
+    #     pickle.dump(avg_val_losses, f)
 
     with open(os.path.join(SAVE_DIR, 'ens_train_losses.pkl'), 'wb') as f:
         pickle.dump(ens_train_losses, f)
@@ -284,11 +284,11 @@ def main(base_dir, save_dir):
     with open(os.path.join(SAVE_DIR, 'ens_val_losses.pkl'), 'wb') as f:
         pickle.dump(ens_val_losses, f)
 
-    with open(os.path.join(SAVE_DIR, 'avg_train_accs.pkl'), 'wb') as f:
-        pickle.dump(avg_train_accs, f)
+    # with open(os.path.join(SAVE_DIR, 'avg_train_accs.pkl'), 'wb') as f:
+    #     pickle.dump(avg_train_accs, f)
 
-    with open(os.path.join(SAVE_DIR, 'avg_val_accs.pkl'), 'wb') as f:
-        pickle.dump(avg_val_accs, f)
+    # with open(os.path.join(SAVE_DIR, 'avg_val_accs.pkl'), 'wb') as f:
+    #     pickle.dump(avg_val_accs, f)
 
     with open(os.path.join(SAVE_DIR, 'ens_train_accs.pkl'), 'wb') as f:
         pickle.dump(ens_train_accs, f)
@@ -297,8 +297,8 @@ def main(base_dir, save_dir):
         pickle.dump(ens_val_accs, f)
 
     # pickle true_val_logits and save it in SAVE_DIR
-    with open(os.path.join(SAVE_DIR, 'true_val_logits.pkl'), 'wb') as f:
-        pickle.dump(true_val_logits, f)
+    # with open(os.path.join(SAVE_DIR, 'true_val_logits.pkl'), 'wb') as f:
+    #     pickle.dump(true_val_logits, f)
 
     # -----------------------------------------------------------------------------
 

@@ -20,4 +20,4 @@ source activate jupyter_39
 
 cd /n/home07/ssainathan/workplace/mup_ensembles/scripts
 
-srun python3 collect_stats.py "/n/pehlevan_lab/Users/sab/mitigate_variance" "/n/pehlevan_lab/Users/sab/mv_stats"
+srun python3 ensemble_size_loss_data.py "/n/pehlevan_lab/Users/sab/ecd_final" "/n/pehlevan_lab/Users/sab/ensemble_size_loss_correspondence"
